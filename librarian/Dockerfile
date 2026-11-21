@@ -14,7 +14,7 @@
 ARG PYTHON_FLOOR
 
 # uv makes the environment, in the builder stage alone.
-FROM ghcr.io/astral-sh/uv:0.13.8 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.9 AS uv
 
 FROM python:${PYTHON_FLOOR}-alpine AS builder
 ARG SDK_ARTIFACT_BUNDLE
