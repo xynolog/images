@@ -219,7 +219,7 @@ def test_it_is_the_services_own_code_and_every_python_service_is_built_on_it() -
         manifest = toml(service / "pyproject.toml")
         assert "xynolog-service" in required(manifest), f"{service.name} is not built on xynolog-service"
         sources = table(table(table(manifest["tool"], "tool")["uv"], "uv")["sources"], "sources")
-        assert sources["xynolog-service"] == {"path": "../../shared/python/service", "editable": True}, service.name
+        assert sources["xynolog-service"] == {"path": "../shared/python/service", "editable": True}, service.name
     for package in sorted(path.parent for path in ROOT.glob("shared/python/*/pyproject.toml")):
         if package != PROJECT:
             requires = {name_of(requirement) for requirement in required(toml(package / "pyproject.toml"))}

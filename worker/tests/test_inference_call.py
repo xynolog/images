@@ -19,7 +19,7 @@ from opentelemetry import trace
 from opentelemetry.sdk.trace import ReadableSpan
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from opentelemetry.trace import SpanKind, StatusCode
-from telemetry_rows import as_the_table_writes, worker_spans
+from telemetry_rows import worker_spans
 from xynolog_inference.interface import ElementSchema, InferenceLimits, InferenceResponse, StructuredResponse
 from xynolog_inference.mock import MockInferenceClient
 
@@ -297,7 +297,7 @@ def test_each_call_is_a_span_the_table_lists_of_its_kind_and_with_its_attributes
         assert set(span.attributes or {}) == {attribute.key for attribute in row.attributes}
         for attribute in row.attributes:
             if attribute.values is not None:
-                assert as_the_table_writes((span.attributes or {})[attribute.key]) in attribute.values
+                assert (span.attributes or {})[attribute.key] in attribute.values
         assert span.status.status_code is StatusCode.UNSET
 
 

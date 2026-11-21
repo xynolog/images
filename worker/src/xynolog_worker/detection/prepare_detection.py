@@ -18,7 +18,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Literal, assert_never, final
 
-from xynolog.annotations import TextSpan, annotation_of_span
+from xynolog.annotations import ReconciledSpan, TextSpan, annotation_of_span
 from xynolog.identifiers import ResourceId
 from xynolog.media_types import text_source_of
 from xynolog.types import (
@@ -114,7 +114,7 @@ def _anchored_by_offset(text: str, resource_id: ResourceId, generator: Agent) ->
     if not trimmed(text):
         return DetectionDecline(declined="empty")
 
-    def build(motivation: Motivation, span: TextSpan, body: AnnotationBodies | None) -> Annotation:
+    def build(motivation: Motivation, span: TextSpan | ReconciledSpan, body: AnnotationBodies | None) -> Annotation:
         return annotation_of_span(text, span, resource_id=resource_id, motivation=motivation, generator=generator, body=body)
 
     return DetectionSource(text=text, build_annotation=build)
@@ -125,7 +125,7 @@ def _anchored_by_page(anchored: AnchoredText, resource_id: ResourceId, generator
     if not trimmed(anchored.text):
         return DetectionDecline(declined="empty")
 
-    def build(motivation: Motivation, span: TextSpan, body: AnnotationBodies | None) -> Annotation:
+    def build(motivation: Motivation, span: TextSpan | ReconciledSpan, body: AnnotationBodies | None) -> Annotation:
         return annotation_of_span(anchored, span, resource_id=resource_id, motivation=motivation, generator=generator, body=body)
 
     return DetectionSource(text=anchored.text, build_annotation=build)

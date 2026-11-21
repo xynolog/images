@@ -69,24 +69,21 @@ TAG_ELEMENT_SCHEMA: Final[ElementSchema] = {
 
 
 @final
-@dataclass(frozen=True, slots=True, kw_only=True)
-class CommentMatch(TextSpan):
+class CommentMatch(TextSpan, frozen=True):
     """A passage of the text, and what the model says of it, as written."""
 
     comment: str
 
 
 @final
-@dataclass(frozen=True, slots=True, kw_only=True)
-class AssessmentMatch(TextSpan):
+class AssessmentMatch(TextSpan, frozen=True):
     """A passage of the text, and the model's judgement of it, as written."""
 
     assessment: str
 
 
 @final
-@dataclass(frozen=True, slots=True, kw_only=True)
-class TagMatch(TextSpan):
+class TagMatch(TextSpan, frozen=True):
     """A passage of the text, and the category the call that found it was for."""
 
     category: str

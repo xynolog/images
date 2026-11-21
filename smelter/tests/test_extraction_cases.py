@@ -32,7 +32,7 @@ from xynolog_smelter.tesseract import TesseractEngine
 
 TABLE = read(ROOT / "protocol/specs/src/smelter/extraction-cases.json")
 CASES = objects(TABLE["cases"], "cases")
-FIXTURES = ROOT / text(TABLE["fixtures"], "fixtures")
+FIXTURES = ROOT / "protocol" / text(TABLE["fixtures"], "fixtures")
 
 ENCRYPTED = "encrypted.pdf"
 LEGIBLE_SCAN = "legible-scan.pdf"
@@ -42,7 +42,7 @@ SECONDS = 60.0
 """How long deriving one document may take: long enough for the engine to start and to read a page's images."""
 
 # Every member each thing the table states may have. A member that is none of these is one nothing here would read.
-TABLE_MEMBERS = ("$comment", "runBy", "cases", "fixtures", "largestPdfBytes")
+TABLE_MEMBERS = ("$comment", "cases", "fixtures", "largestPdfBytes")
 READ_MEMBERS = ("why", "fixture", "pdfClass", "method", "unreadPages", "pagesWithItems", "words", "onPage", "absent", "rows")
 DECLINED_MEMBERS = ("why", "fixture", "bytes", "declined")
 BYTES_MEMBERS = ("utf8", "length")

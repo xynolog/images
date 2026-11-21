@@ -22,7 +22,7 @@ from aio import pass_time, run, under_way
 from counted import counted
 from opentelemetry.sdk.metrics.export import InMemoryMetricReader
 from pydantic import JsonValue
-from xynolog.annotations import QuotedText, TextSpan, reconcile
+from xynolog.annotations import QuotedText, ReconciledSpan, TextSpan, reconcile
 from xynolog.types import TagCategory, TagSchema, UnitCursor
 from xynolog.watched import Variable
 from xynolog_inference.interface import (
@@ -170,7 +170,7 @@ class Kind:
     detect: Detect
 
 
-def span_of(words: str) -> TextSpan:
+def span_of(words: str) -> ReconciledSpan:
     """Where `TEXT` has `words`, which it has once. What it has either side of them is the SDK's to say, as it is for the worker."""
     found = reconcile(TEXT, QuotedText(exact=words))
     assert found is not None

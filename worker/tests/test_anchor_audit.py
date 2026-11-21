@@ -19,6 +19,10 @@ from xynolog_worker.telemetry import DetectionLabel
 
 ANCHORS = "xynolog.detection.anchors"
 
+# The SDK states the ways a span is found as a described Literal: its values are the Literal's.
+(_METHOD, _) = get_args(AnchorMethod.__value__)
+METHODS = get_args(_METHOD)
+
 
 def anchors(reader: InMemoryMetricReader) -> Counter[tuple[object, ...]]:
     """How many anchors have been counted so far, by what was anchored and how. A point carries those and its knowledge base."""
@@ -66,15 +70,15 @@ def test_what_is_counted_is_what_the_table_lists(metric_reader: InMemoryMetricRe
     # Every kind of mark job by every way a span is found: the two lists are the worker's own and the SDK's, and each is the table's.
     assert listed == {
         "detection.label": list(get_args(DetectionLabel.__value__)),
-        "anchor.method": list(get_args(AnchorMethod.__value__)),
+        "anchor.method": list(METHODS),
         "xynolog.kb": None,
     }
     assert all(attribute.only is None for attribute in row.attributes)
 
     before = anchors(metric_reader)
     for label in get_args(DetectionLabel.__value__):
-        for method in get_args(AnchorMethod.__value__):
+        for method in METHODS:
             note_anchor(label, "x", method)
     assert anchors(metric_reader) - before == Counter(
-        {(label, method): 1 for label in get_args(DetectionLabel.__value__) for method in get_args(AnchorMethod.__value__)}
+        {(label, method): 1 for label in get_args(DetectionLabel.__value__) for method in METHODS}
     )
