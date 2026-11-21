@@ -223,12 +223,17 @@ class SmokeStackTest(unittest.TestCase):
                 shutil.rmtree(self.kb)
 
     def test_stack_smoke_requires_xynolog_before_starting_anything(self) -> None:
-        env = {**os.environ, "PATH": str(self.root / "bin")}
         (self.root / "bin/xynolog").unlink()
+        # The PATH holds the stand-ins, the shell and the one tool the smoke runs before it looks for
+        # xynolog, and nothing else, so no xynolog the host has is found.
+        for tool in ("bash", "dirname"):
+            found = shutil.which(tool)
+            assert found is not None, f"the smoke runs {tool}"
+            (self.root / "bin" / tool).symlink_to(found)
         result = subprocess.run(
             ["bash", str(self.root / "tests/stack/smoke-stack.sh"), "up", "local"],
             check=False,
-            env=env,
+            env={**os.environ, "PATH": str(self.root / "bin"), "CONTAINER_RUNTIME": self.runtime},
             capture_output=True,
             text=True,
         )
