@@ -84,6 +84,7 @@ updates:
   - package-ecosystem: uv
     labels: ["dependencies"]
     directories:
+      - /
       - /shared/python/graph
       - /shared/python/inference
       - /shared/python/service
