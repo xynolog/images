@@ -8,7 +8,7 @@ TYPESCRIPT_IMAGES := browser
 PYTHON_IMAGES := librarian smelter weaver worker
 IMAGE_NAMES := $(RUST_IMAGES) $(TYPESCRIPT_IMAGES) $(PYTHON_IMAGES)
 
-.PHONY: help build shared clean $(IMAGE_NAMES) generate check-generated test-rust stack-up e2e stack-down smoke
+.PHONY: help build shared clean $(IMAGE_NAMES) generate check-generated test-rust test-python test-browser stack-up e2e stack-down smoke
 
 # `make help` prints the `##` lines below, in order (build-tools/make-help.awk).
 ##@ Xynolog Images: make [target] [VARIABLE=value ...]
@@ -62,6 +62,14 @@ check-generated:
 ## test-rust: The Rust workspace's format, lints, tests and dependency boundaries, in its toolchain's container
 test-rust:
 	@./scripts/test-rust.sh
+
+## test-python: Each Python project's type checks, lints, format and tests, in a container of the SDK wheel's oldest Python
+test-python:
+	@./scripts/test-python.sh
+
+## test-browser: The Browser's tests and the type checks of its sources and tests, in its build container
+test-browser:
+	@./scripts/test-browser.sh
 
 ##@ Stack and E2E
 ## stack-up: Boot and check the SMOKE_TAG images, and leave them up

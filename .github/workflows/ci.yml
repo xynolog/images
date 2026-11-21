@@ -322,13 +322,77 @@ jobs:
           path: ~/.cache/xynolog-images/rust
           key: ${{ steps.cargo.outputs.cache-primary-key }}
 
+  # Each Python project's type checks, lints, format and tests (`make
+  # test-python`, scripts/test-python.sh), against the SDK's wheel from the
+  # bundle.
+  python:
+    name: The Python projects type-check, are lint-free and formatted, and pass their tests
+    needs: sdk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          submodules: true
+
+      - name: Download the SDK bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: sdk-artifacts
+          path: ${{ runner.temp }}/sdk-artifacts
+
+      # The target keeps uv's cache here (scripts/test-python.sh). It is saved
+      # even when the checks fail: what was downloaded is still good.
+      - name: Restore uv's cache
+        id: uv
+        uses: actions/cache/restore@v6.1.0
+        with:
+          path: ~/.cache/xynolog-images/python
+          key: ${{ runner.os }}-${{ runner.arch }}-python-${{ hashFiles('**/uv.lock', 'sdk.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-python-
+
+      - name: Run each project's checks
+        env:
+          SDK_ARTIFACTS: ${{ runner.temp }}/sdk-artifacts
+        run: make test-python
+
+      - name: Save uv's cache
+        if: always() && steps.uv.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6.1.0
+        with:
+          path: ~/.cache/xynolog-images/python
+          key: ${{ steps.uv.outputs.cache-primary-key }}
+
+  # The Browser's tests and the type checks of its sources and tests (`make
+  # test-browser`, scripts/test-browser.sh), against the SDK's npm packages
+  # from the bundle.
+  browser:
+    name: The Browser passes its tests, and its sources and tests type-check
+    needs: sdk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          submodules: true
+
+      - name: Download the SDK bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: sdk-artifacts
+          path: ${{ runner.temp }}/sdk-artifacts
+
+      - name: Run the Browser's checks
+        env:
+          SDK_ARTIFACTS: ${{ runner.temp }}/sdk-artifacts
+        run: make test-browser
+
   # What the ruleset requires. It waits for every other job, a census holds
   # that list to the workflow's jobs, and it fails when any of them failed or
   # was cancelled. A job skipped by its own condition passes.
   gate:
     name: CI Gate
     if: always()
-    needs: [dco, labels, sdk, checks, model-catalogue, images, advisories, crates, generated, rust]
+    needs: [dco, labels, sdk, checks, model-catalogue, images, advisories, crates, generated, rust, python, browser]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
