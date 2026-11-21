@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# check-e2e.sh — e2e's type check (`make check-e2e`): its specs, fixtures and
-# scripts compile against the SDK's npm packages from the SDK artifact bundle,
-# in a Node container. The specs themselves run against a booted stack
-# (`make e2e`).
+# check-e2e.sh — e2e's checks (`make check-e2e`), in a Node container: its
+# specs, fixtures and scripts compile against the SDK's npm packages from the
+# SDK artifact bundle, and its TypeScript and modules are in Prettier's format.
+# Every check runs, and the run fails if any did. The specs themselves run
+# against a booted stack (`make e2e`).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -21,4 +22,7 @@ RUNTIME="$(detect_container_runtime)"
     python3 /source/build-tools/prepare-sdk-package.py /sdk-bundle /tmp/e2e/package.json
     cd /tmp/e2e
     npm install --no-audit --no-fund --ignore-scripts
-    npm run typecheck'
+    status=0
+    npm run typecheck || status=1
+    npm run format:check || status=1
+    exit "$status"'

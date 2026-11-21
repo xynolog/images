@@ -5,6 +5,7 @@
   "description": "End-to-end smoke tests. Runs against a locally-running gateway and frontend; see README.md.",
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "format:check": "prettier --check \"**/*.{ts,mjs}\"",
     "pretest": "npm run typecheck",
     "test": "playwright test --grep-invert @slow",
     "pretest:slow": "npm run typecheck",
@@ -20,9 +21,10 @@
   },
   "devDependencies": {
     "@playwright/test": "1.65.0",
+    "@types/node": "^26.0.0",
     "@xynolog/core": "0.7.3",
     "@xynolog/sdk": "0.7.3",
-    "@types/node": "^26.0.0",
+    "prettier": "3.9.10",
     "typescript": "^6.0.2"
   }
 }

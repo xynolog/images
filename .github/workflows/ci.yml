@@ -340,7 +340,7 @@ jobs:
         run: make test-browser
 
   e2e:
-    name: E2E's specs and fixtures type-check
+    name: E2E's type check and format
     needs: sdk
     runs-on: ubuntu-latest
     steps:
@@ -354,7 +354,7 @@ jobs:
           name: sdk-artifacts
           path: ${{ runner.temp }}/sdk-artifacts
 
-      - name: Type-check E2E
+      - name: Check E2E
         env:
           SDK_ARTIFACTS: ${{ runner.temp }}/sdk-artifacts
         run: make check-e2e
