@@ -1,5 +1,5 @@
 # What the Browser's scripts make: public/ is staged whole (the favicons from
-# @xynolog/react-ui, pdf.js's wasm decoders, the merged translations), and so
+# the brand submodule, pdf.js's wasm decoders, the merged translations), and so
 # is messages/, merged from messages-source/ and react-ui's translations
 /public/
 /messages/

@@ -43,7 +43,7 @@ SHARED_ROOT = {
 STAGED = {
     ".local/sdk-artifacts/": ["upstream.lock.json"],
     ".local/shared-python-packages/": ["shared/python"],
-    "${BROWSER_PACKAGE_DIR}": ["browser"],
+    "${BROWSER_PACKAGE_DIR}": ["browser", "brand"],
 }
 
 
