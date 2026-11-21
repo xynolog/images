@@ -20,11 +20,11 @@
     "show-report": "playwright show-report"
   },
   "devDependencies": {
-    "@playwright/test": "1.65.0",
+    "@playwright/test": "1.65.1",
     "@types/node": "^26.0.0",
     "@xynolog/core": "0.7.3",
     "@xynolog/sdk": "0.7.3",
-    "prettier": "3.9.10",
+    "prettier": "3.10.1",
     "typescript": "^6.0.2"
   }
 }
