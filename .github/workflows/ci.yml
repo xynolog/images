@@ -339,13 +339,33 @@ jobs:
           SDK_ARTIFACTS: ${{ runner.temp }}/sdk-artifacts
         run: make test-browser
 
+  e2e:
+    name: E2E's specs and fixtures type-check
+    needs: sdk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          submodules: true
+
+      - name: Download the SDK bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: sdk-artifacts
+          path: ${{ runner.temp }}/sdk-artifacts
+
+      - name: Type-check E2E
+        env:
+          SDK_ARTIFACTS: ${{ runner.temp }}/sdk-artifacts
+        run: make check-e2e
+
   # What the ruleset requires. It waits for every other job, a census holds
   # that list to the workflow's jobs, and it fails when any of them failed or
   # was cancelled. A job skipped by its own condition passes.
   gate:
     name: CI Gate
     if: always()
-    needs: [dco, labels, sdk, checks, model-catalogue, images, advisories, crates, generated, rust, python, browser]
+    needs: [dco, labels, sdk, checks, model-catalogue, images, advisories, crates, generated, rust, python, browser, e2e]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1

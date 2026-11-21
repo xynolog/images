@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { MARK_MOTIVATIONS, kbDid, type components, type JobFilter } from '@xynolog/core';
-import { validators, formatErrors } from '@xynolog/core/openapi';
+import { MARK_MOTIVATIONS, faultOf, kbDid, said, type components, type JobFilter } from '@xynolog/core';
 import { GATEWAY_URL } from '../playwright.config';
 import { signInSession } from '../fixtures/sdk-session';
 
@@ -16,7 +15,7 @@ import { signInSession } from '../fixtures/sdk-session';
  * operator's `curl :24100/health`) live outside the Worker service, so its
  * own tests of the body it builds can't catch a break in what a running
  * stack serves. The body is checked against the protocol's `WorkerHealth`
- * schema, through the validator generated from it: the spec owns the shape,
+ * schema, by `faultOf`, which reads it as every SDK does: the spec owns the shape,
  * the worker serves it, and only a running stack shows what it serves.
  *
  * What it pins:
@@ -74,10 +73,16 @@ async function fetchHealth(): Promise<components['schemas']['WorkerHealth']> {
   const res = await fetch(WORKER_HEALTH_URL);
   expect(res.ok, `GET ${WORKER_HEALTH_URL} → HTTP ${res.status}`).toBe(true);
   const body: unknown = await res.json();
-  if (!validators.WorkerHealth(body)) {
-    throw new Error(`GET ${WORKER_HEALTH_URL} is not a WorkerHealth: ${formatErrors(validators.WorkerHealth.errors)}`);
-  }
+  assertWorkerHealth(body);
   return body;
+}
+
+/** Refuses `body` by its first fault as a WorkerHealth; with none, it is one. */
+function assertWorkerHealth(body: unknown): asserts body is components['schemas']['WorkerHealth'] {
+  const fault = faultOf('WorkerHealth', body);
+  if (fault !== undefined) {
+    throw new Error(`GET ${WORKER_HEALTH_URL} is not a WorkerHealth: ${said(fault)}`);
+  }
 }
 
 /** The worker's entry for the knowledge base at `domain`, which is working, so it names its agent and engines. */
