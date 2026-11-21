@@ -81,12 +81,11 @@ Almost none, deliberately.
 
 ## What the image carries
 
-Node and the npm package `@xynolog/browser`: the built `dist/` plus `server.js`, with no
-runtime dependencies. The image does not build the SPA; its first stage installs the
-published package from an npm registry. npm is removed from the runtime image. One build,
-three consumers: this image, the package `@xynolog/browser` itself, and
-[`apps/desktop`](https://github.com/xynolog/desktop), a separate Electron chat client built from its own
-renderer.
+Node and the package `@xynolog/browser`: the built `dist/` plus `server.js`, with no
+runtime dependencies. The image does not build the SPA; its first stage installs the package
+this repository packs ([Building it](#building-it)). npm is removed from the runtime image.
+[`desktop`](https://github.com/xynolog/desktop) is a separate Electron chat client, built from
+its own renderer.
 
 ## Working on it
 
@@ -105,13 +104,12 @@ merges them with `@xynolog/react-ui`'s on the `pre*` hooks and writes `messages/
 
 ## Building it
 
-The image does not build the app: it installs a published `@xynolog/browser` from an npm
-registry, `NPM_REGISTRY` (npm's own by default), at the version `XYNOLOG_BROWSER_VERSION`
-(`latest` by default). [`make build`](../Makefile) builds
-this directory's package, publishes it to the Verdaccio it starts, and builds the image
-against that registry, tagged `ghcr.io/xynolog/xynolog-browser:local`;
-[`publish-browser.yml`](../.github/workflows/publish-browser.yml) builds it from the
-published package.
+The image does not build the app: it installs the `@xynolog/browser` package that
+[`scripts/build-browser-package.sh`](../scripts/build-browser-package.sh) builds from this
+directory and the SDK bundle, at `version.json`'s version. The package is never published to a
+registry. [`make build`](../Makefile) packs it and builds the image, tagged
+`ghcr.io/xynolog/xynolog-browser:local`; [`publish-browser.yml`](../.github/workflows/publish-browser.yml)
+does the same at a release tag.
 
 ## Related
 

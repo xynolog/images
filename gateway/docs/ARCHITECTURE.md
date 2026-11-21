@@ -22,7 +22,7 @@ The gateway is a member of the repository's Rust workspace
 ## Built against the spec
 
 The spec is compiled into the binary. `make generate` (the SDK's generator,
-at the commit `sdk.lock` pins) bundles `protocol/specs/src` into
+at the commit `upstream.lock.json` pins) bundles `protocol/specs/src` into
 [xynolog-core's generated directory](../../packages/rust/core/src/generated):
 the protocol's OpenAPI document, the Archivist's, and the component schemas as
 JSON Schema draft 7 (OpenAPI 3.0's `nullable` made a type), and the Rust types

@@ -18,7 +18,6 @@ CONTAINER_RUNTIME ?=
 ## SDK_REPO=path: The SDK checkout that builds and resolves artifacts when SDK_ARTIFACTS is unset
 SDK_REPO ?= ../sdk
 ## SDK_ARTIFACTS=path: Use and verify this SDK artifact bundle instead
-## XYNOLOG_BROWSER_VERSION=version: The Browser package version; else browser/package.publish.json's
 ## SMOKE_TAG=tag: The image tag stack-up and smoke run
 SMOKE_TAG ?= local
 ## E2E_SCRIPT=name: The E2E npm script

@@ -35,7 +35,6 @@ source "$REPO_ROOT/build-tools/container-runtime.sh"
 RT="$(detect_container_runtime)"
 RUST_TOOLCHAIN="$(packages/rust/scripts/rust-toolchain.sh)"
 VERSION="$(python3 -c 'import json; print(json.load(open("version.json"))["version"])')"
-BROWSER_VERSION="${XYNOLOG_BROWSER_VERSION:-$(python3 -c 'import json; print(json.load(open("browser/package.publish.json"))["version"])')}"
 
 languages=()
 for service in "$@"; do
@@ -75,7 +74,7 @@ for service in "$@"; do
     python) args=(--build-arg "PYTHON_FLOOR=$PYTHON_FLOOR" --build-arg "SDK_ARTIFACT_BUNDLE=$bundle_id") ;;
     typescript)
       bash "$REPO_ROOT/scripts/build-browser-package.sh" "$REPO_ROOT/$bundle_dir"
-      args=(--build-arg "XYNOLOG_BROWSER_VERSION=$BROWSER_VERSION" --build-arg "BROWSER_PACKAGE_DIR=.local/browser-package")
+      args=(--build-arg "XYNOLOG_BROWSER_VERSION=$VERSION" --build-arg "BROWSER_PACKAGE_DIR=.local/browser-package")
       ;;
   esac
   tag="ghcr.io/xynolog/xynolog-$service:local"

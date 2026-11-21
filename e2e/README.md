@@ -155,7 +155,7 @@ container run --rm \
 - [Running tests](docs/running.md) — invocation, single spec, headed,
   `--repeat-each`, host vs. container.
 - [Containers and rebuild flow](docs/containers.md) — Apple container
-  CLI, Verdaccio, rebuilding gateway/Browser after code changes, IP
+  CLI, rebuilding gateway/Browser after code changes, IP
   refresh, Playwright image tag.
 - [Writing tests](docs/writing.md) — spec template, fixture ordering,
   protocol-level assertions, seed assumptions, selector conventions.

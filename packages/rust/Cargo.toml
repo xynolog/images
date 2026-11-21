@@ -16,14 +16,6 @@ members = [
     "../../gateway",
 ]
 
-# What the crates published to crates.io share. `version` is version.json's:
-# packages/rust/scripts/cargo-version.sh writes it here, beside the three paths
-# below that name it, and in Cargo.lock, and CI fails a crate that carries
-# another.
-[workspace.package]
-version = "0.7.3"
-repository = "https://github.com/xynolog/images"
-
 # Every crate a member uses, by version, once: a member names the ones it uses
 # with `.workspace = true` and adds the features it needs.
 [workspace.dependencies]

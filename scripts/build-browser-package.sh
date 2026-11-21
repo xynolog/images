@@ -11,7 +11,8 @@ bash "$ROOT/scripts/browser-container.sh" "$SDK_BUNDLE_DIR" '
     # The lock this install resolved, for the advisory scan; nothing commits one.
     cp /tmp/browser/package-lock.json /source/.local/browser-lock/package-lock.json
     cp /source/browser/server.js /tmp/browser-publish/server.js
-    cp /source/browser/package.publish.json /tmp/browser-publish/package.json
+    # The package takes the version in version.json, the browser image version.
+    node -e '"'"'const fs = require("node:fs"); const p = JSON.parse(fs.readFileSync("/source/browser/package.publish.json", "utf8")); p.version = JSON.parse(fs.readFileSync("/source/version.json", "utf8")).version; fs.writeFileSync("/tmp/browser-publish/package.json", JSON.stringify(p, null, 2) + "\n");'"'"'
     cp -a /tmp/browser/dist /tmp/browser-publish/dist
     cd /tmp
     npm pack /tmp/browser-publish --pack-destination /source/.local/browser-package

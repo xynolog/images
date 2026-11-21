@@ -26,6 +26,8 @@ RUNTIME="$(detect_container_runtime)"
     tar -xzf /sdk-bundle/typescript/xynolog-react-ui-*.tgz \
       -C /packages/typescript/react-ui --strip-components=1 package/translations
     cp -a /source/browser/. /tmp/browser/
+    # Beside the app, as in the repository: the build reads its version there.
+    cp /source/version.json /tmp/version.json
     python3 /source/build-tools/prepare-sdk-package.py /sdk-bundle /tmp/browser/package.json
     cd /tmp/browser
     npm install --no-audit --no-fund

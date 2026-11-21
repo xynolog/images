@@ -1,6 +1,5 @@
 {
   "name": "@xynolog/browser",
-  "version": "0.7.3",
   "description": "Xynolog Browser - pre-built Vite SPA with static file server",
   "main": "server.js",
   "bin": {
@@ -14,9 +13,6 @@
     "start": "node server.js"
   },
   "dependencies": {},
-  "publishConfig": {
-    "access": "public"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xynolog/images.git",

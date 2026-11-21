@@ -1,40 +1,89 @@
 name: Publish Browser Container Image
 
-run-name: "Browser Image: @xynolog/browser@${{ inputs.version }}"
+run-name: "Browser Image @ ${{ github.ref_name }}${{ inputs.dry_run && ' (dry-run)' || '' }}"
+
+# Application publishing (versioning R17, R18, R19): a person dispatches this
+# at a release tag, once release.yml has passed on it, and approves it in the
+# `release` environment:
+#
+#   gh workflow run publish-browser.yml --ref v26.11.0 -f dry_run=false
+#
+# The image installs the @xynolog/browser package built here from this
+# checkout and the SDK release the lock names, downloaded and checked against
+# its digest; both take version.json's version, which must be the tag's, and
+# `:latest` moves to the image. The launcher runs the image only when this
+# workflow, at a release tag, signed its provenance.
 
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: '@xynolog/browser version (e.g. 0.4.15, 0.4.15-build.42, latest)'
-        required: true
-        type: string
       dry_run:
-        description: 'Dry run (build but do not push)'
-        required: false
+        description: 'Dry run (build + gate but do not push)'
+        required: true
         type: boolean
-        default: false
-      tag_latest:
-        description: 'Also tag as :latest'
-        required: false
-        type: boolean
-        default: false
 
-permissions:
-  contents: read
-  packages: write
-  id-token: write
-  attestations: write
+permissions: {}
 
 jobs:
-  publish:
+  version:
+    name: The release version.json names
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - id: release
+        run: scripts/release-version.sh >> "$GITHUB_OUTPUT"
+
+  # This run is at the signed tag v<version>, on a commit main holds.
+  tag:
+    needs: version
+    permissions:
+      contents: read
+    uses: xynolog/.github/.github/workflows/release-tag.yml@8e5e3b02c34517d3f8b49645330930983d07b7ac
+    with:
+      tags: ${{ needs.version.outputs.tag }}
+
+  # The lock names released upstreams only, and yields the SDK release's bundle
+  # as the artifact `sdk-artifacts`.
+  upstream:
+    needs: tag
+    permissions:
+      contents: read
+    uses: xynolog/sdk/.github/workflows/upstream.yml@52c59e698b3ee821113f350539f521f6c9df6e1d
+    with:
+      languages: typescript
+      release: true
+
+  publish:
+    needs: [version, tag, upstream]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
         with:
           submodules: recursive
+
+      - name: Download the SDK bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: sdk-artifacts
+          path: ${{ runner.temp }}/sdk-artifacts
+
+      # The package the image installs, at version.json's version, into
+      # .local/browser-package.
+      - name: Build the Browser package
+        run: bash scripts/build-browser-package.sh "$RUNNER_TEMP/sdk-artifacts"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.4.1
@@ -48,15 +97,9 @@ jobs:
 
       - name: Determine tags
         id: tags
-        run: |
-          COMMIT_SHA=$(git rev-parse --short HEAD)
-          TAGS="ghcr.io/xynolog/xynolog-browser:${{ inputs.version }}"
-          TAGS="$TAGS,ghcr.io/xynolog/xynolog-browser:sha-$COMMIT_SHA"
-          if [ "${{ inputs.tag_latest }}" = "true" ]; then
-            TAGS="$TAGS,ghcr.io/xynolog/xynolog-browser:latest"
-          fi
-          echo "tags=$TAGS" >> $GITHUB_OUTPUT
-          echo "sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: scripts/image-tags.sh browser "$VERSION" >> "$GITHUB_OUTPUT"
 
       # Single-platform build for scanning. amd64 OS-package CVEs cover
       # arm64 too since base layers share package versions, so one scan
@@ -71,7 +114,8 @@ jobs:
           load: true
           tags: xynolog-browser:scan
           build-args: |
-            XYNOLOG_BROWSER_VERSION=${{ inputs.version }}
+            XYNOLOG_BROWSER_VERSION=${{ needs.version.outputs.version }}
+            BROWSER_PACKAGE_DIR=.local/browser-package
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -102,7 +146,7 @@ jobs:
       #
       # Scope note, so this is not read as more than it is: @xynolog/browser
       # ships a PRE-BUILT SPA, so its third-party dependencies are bundled into
-      # the output before the package is published and never appear as npm
+      # the output before the package is packed and never appear as npm
       # packages in the image. This inspects the npm packages the SBOM lists:
       # @xynolog/browser itself and the installer-stage scaffold.
       # It is here for symmetry and to catch drift if this image ever gains a
@@ -151,7 +195,8 @@ jobs:
           push: ${{ !inputs.dry_run }}
           tags: ${{ steps.tags.outputs.tags }}
           build-args: |
-            XYNOLOG_BROWSER_VERSION=${{ inputs.version }}
+            XYNOLOG_BROWSER_VERSION=${{ needs.version.outputs.version }}
+            BROWSER_PACKAGE_DIR=.local/browser-package
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -163,7 +208,7 @@ jobs:
         if: ${{ !inputs.dry_run }}
         uses: actions/attest-build-provenance@v4.2.2
         with:
-          subject-name: ghcr.io/xynolog/xynolog-browser
+          subject-name: ${{ steps.tags.outputs.image }}
           subject-digest: ${{ steps.build-push.outputs.digest }}
           push-to-registry: true
 
@@ -171,27 +216,32 @@ jobs:
         if: ${{ !inputs.dry_run }}
         uses: actions/attest-sbom@v4
         with:
-          subject-name: ghcr.io/xynolog/xynolog-browser
+          subject-name: ${{ steps.tags.outputs.image }}
           subject-digest: ${{ steps.build-push.outputs.digest }}
           sbom-path: sbom.spdx.json
           push-to-registry: true
 
       - name: Summary
+        env:
+          IMAGE: ${{ steps.tags.outputs.image }}
+          VERSION: ${{ needs.version.outputs.version }}
         run: |
-          echo "## Browser Container Image" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**@xynolog/browser version:** ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ steps.tags.outputs.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Dry run:** ${{ inputs.dry_run }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Pull with:" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ghcr.io/xynolog/xynolog-browser:${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Verify supply-chain attestations:" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "gh attestation verify oci://ghcr.io/xynolog/xynolog-browser:${{ inputs.version }} \\" >> $GITHUB_STEP_SUMMARY
-          echo "  --repo $GITHUB_REPOSITORY \\" >> $GITHUB_STEP_SUMMARY
-          echo "  --cert-identity https://github.com/${GITHUB_WORKFLOW_REF%@*}@refs/tags/v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Browser Container Image"
+            echo ""
+            echo "**Version:** $VERSION (built from this commit)"
+            echo "**Commit:** ${{ steps.tags.outputs.sha }}"
+            echo "**Dry run:** ${{ inputs.dry_run }}"
+            echo ""
+            echo "### Pull with:"
+            echo "\`\`\`bash"
+            echo "docker pull $IMAGE:$VERSION"
+            echo "\`\`\`"
+            echo ""
+            echo "### Verify supply-chain attestations:"
+            echo "\`\`\`bash"
+            echo "gh attestation verify oci://$IMAGE:$VERSION \\"
+            echo "  --repo $GITHUB_REPOSITORY \\"
+            echo "  --cert-identity https://github.com/${GITHUB_WORKFLOW_REF%@*}@$GITHUB_REF"
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"

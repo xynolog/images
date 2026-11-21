@@ -1,6 +1,6 @@
 name: Publish Service Container Images
 
-run-name: "Service Images @ ${{ inputs.version }}${{ inputs.dry_run && ' (dry-run)' || '' }}"
+run-name: "Service Images @ ${{ github.ref_name }}${{ inputs.dry_run && ' (dry-run)' || '' }}"
 
 # Builds and publishes the Xynolog service images
 # (gateway · worker · smelter · weaver · archivist · librarian · dispatcher).
@@ -21,34 +21,71 @@ run-name: "Service Images @ ${{ inputs.version }}${{ inputs.dry_run && ' (dry-ru
 # wheels their lockfiles name for both platforms, the smelter with the
 # packages Alpine has for both. Emulation handles that in minutes, so each
 # publishes both platforms from one leg.
+#
+# Application publishing (versioning R17, R18, R19): a person dispatches this
+# at a release tag, once release.yml has passed on it, and approves it in the
+# `release` environment:
+#
+#   gh workflow run publish-service-images.yml --ref v26.11.0 -f dry_run=false
+#
+# The images take version.json's version, which must be the tag's; `:latest`
+# moves to them. They install the SDK bundle the lock's SDK release names,
+# downloaded and checked against its digest. The launcher runs an image only
+# when this workflow, at a release tag, signed its provenance.
 
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'The version to tag the images with (e.g. 0.5.13, 0.5.13-build.42)'
-        required: true
-        type: string
       dry_run:
         description: 'Dry run (build + gate but do not push)'
-        required: false
+        required: true
         type: boolean
-        default: false
-      tag_latest:
-        description: 'Also tag as :latest'
-        required: false
-        type: boolean
-        default: false
 
-permissions:
-  contents: read
-  packages: write
-  id-token: write
-  attestations: write
+permissions: {}
 
 jobs:
+  version:
+    name: The release version.json names
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - id: release
+        run: scripts/release-version.sh >> "$GITHUB_OUTPUT"
+
+  # This run is at the signed tag v<version>, on a commit main holds.
+  tag:
+    needs: version
+    permissions:
+      contents: read
+    uses: xynolog/.github/.github/workflows/release-tag.yml@8e5e3b02c34517d3f8b49645330930983d07b7ac
+    with:
+      tags: ${{ needs.version.outputs.tag }}
+
+  # The lock names released upstreams only, and yields the SDK release's bundle
+  # as the artifact `sdk-artifacts`.
+  upstream:
+    needs: tag
+    permissions:
+      contents: read
+    uses: xynolog/sdk/.github/workflows/upstream.yml@52c59e698b3ee821113f350539f521f6c9df6e1d
+    with:
+      languages: python rust
+      release: true
+
   publish:
+    needs: [version, tag, upstream]
     runs-on: ${{ matrix.runner }}
+    environment: release
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
 
     strategy:
       # One service's failure must not cancel the others' publishes.
@@ -134,24 +171,16 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Read immutable SDK artifact pin
-        id: sdk-pin
-        run: node -e 'const p = JSON.parse(require("node:fs").readFileSync("sdk.lock", "utf8")); for (const [k, v] of Object.entries(p)) console.log(`${k}=${v}`)' >> "$GITHUB_OUTPUT"
-
-      - name: Download verified SDK artifacts
-        id: sdk
-        uses: xynolog/sdk/.github/actions/download-bundle@e15cfe2996b0da2e115cdc2e2e8f9bb1551c208d
+      - name: Download the SDK bundle
+        uses: actions/download-artifact@v8
         with:
-          tag: ${{ steps.sdk-pin.outputs.tag }}
-          commit: ${{ steps.sdk-pin.outputs.commit }}
-          protocol-commit: ${{ steps.sdk-pin.outputs.protocol }}
-          sha256: ${{ steps.sdk-pin.outputs.sha256 }}
-          languages: python,rust
+          name: sdk-artifacts
+          path: ${{ runner.temp }}/sdk-artifacts
 
       - name: Stage SDK artifacts for image builders
         id: sdk-stage
         env:
-          SDK_ARTIFACTS: ${{ steps.sdk.outputs.path }}
+          SDK_ARTIFACTS: ${{ runner.temp }}/sdk-artifacts
         run: echo "id=$(bash scripts/stage-sdk-artifacts.sh python rust)" >> "$GITHUB_OUTPUT"
 
       # The license gate runs node; an arm64 runner's image need not carry it.
@@ -207,7 +236,9 @@ jobs:
 
       - name: Determine tags
         id: tags
-        run: scripts/image-tags.sh "${{ matrix.service }}" "${{ inputs.version }}" "${{ inputs.tag_latest }}" >> "$GITHUB_OUTPUT"
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: scripts/image-tags.sh "${{ matrix.service }}" "$VERSION" >> "$GITHUB_OUTPUT"
 
       # Single-platform build for scanning + SBOM, on the runner's own platform.
       # For an emulated multi-arch leg, amd64 OS-package CVEs cover arm64 too
@@ -396,36 +427,45 @@ jobs:
           push-to-registry: true
 
       - name: Summary
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
         run: |
           {
             echo "## Xynolog ${{ matrix.service }} Container Image"
             echo ""
-            echo "**Version:** ${{ inputs.version }} (built from this commit)"
+            echo "**Version:** $VERSION (built from this commit)"
             echo "**Commit:** ${{ steps.tags.outputs.sha }}"
             echo "**Dry run:** ${{ inputs.dry_run }}"
             echo ""
             echo "### Pull with:"
             echo "\`\`\`bash"
-            echo "docker pull ${{ steps.tags.outputs.image }}:${{ inputs.version }}"
+            echo "docker pull ${{ steps.tags.outputs.image }}:$VERSION"
             echo "\`\`\`"
             echo ""
             echo "### Verify supply-chain attestations:"
             echo "\`\`\`bash"
-            echo "gh attestation verify oci://${{ steps.tags.outputs.image }}:${{ inputs.version }} \\"
+            echo "gh attestation verify oci://${{ steps.tags.outputs.image }}:$VERSION \\"
             echo "  --repo $GITHUB_REPOSITORY \\"
-            echo "  --cert-identity https://github.com/${GITHUB_WORKFLOW_REF%@*}@refs/tags/v${{ inputs.version }}"
+            echo "  --cert-identity https://github.com/${GITHUB_WORKFLOW_REF%@*}@$GITHUB_REF"
             echo "\`\`\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # A service's two architectures, each built on its own runner and pushed by
   # digest, joined into one image under the tags, then attested.
   manifest:
-    needs: publish
+    needs: [version, tag, upstream, publish]
     # Each leg of publish succeeds or fails alone (fail-fast is off), so a
     # failure elsewhere must not hold a service back. A leg that failed leaves
-    # no digest, and its download below fails on it.
-    if: ${{ !cancelled() && !inputs.dry_run }}
+    # no digest, and its download below fails on it. `!cancelled()` lifts the
+    # implicit success(), so the release checks are required by name.
+    if: ${{ !cancelled() && !inputs.dry_run && needs.tag.result == 'success' && needs.upstream.result == 'success' }}
     runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
     strategy:
       fail-fast: false
       matrix:
@@ -438,7 +478,9 @@ jobs:
 
       - name: Determine tags
         id: tags
-        run: scripts/image-tags.sh "${{ matrix.service }}" "${{ inputs.version }}" "${{ inputs.tag_latest }}" >> "$GITHUB_OUTPUT"
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: scripts/image-tags.sh "${{ matrix.service }}" "$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Collect the amd64 digest
         uses: actions/download-artifact@v8
@@ -472,7 +514,7 @@ jobs:
         env:
           IMAGE: ${{ steps.tags.outputs.image }}
           TAGS: ${{ steps.tags.outputs.tags }}
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ needs.version.outputs.version }}
         run: |
           tag_args=$(echo "$TAGS" | tr ',' '\n' | sed 's/^/-t /' | tr '\n' ' ')
           sources=$(cd digests && for d in *; do printf '%s@sha256:%s ' "$IMAGE" "$d"; done)

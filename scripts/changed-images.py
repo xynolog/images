@@ -10,7 +10,7 @@ An image is affected when a changed path is one of its inputs:
   language;
 - what scripts/build-session.sh stages into .local/ for it, by where that is
   built from;
-- what every build reads: the Makefile, scripts/, build-tools/, sdk.lock,
+- what every build reads: the Makefile, scripts/, build-tools/, upstream.lock.json,
   .dockerignore and this workflow.
 
 With no base (a new branch, or a base this clone does not have), every image
@@ -31,7 +31,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-EVERY_BUILD = ["Makefile", "scripts", "build-tools", "sdk.lock", ".dockerignore", ".github/workflows/ci.yml"]
+EVERY_BUILD = ["Makefile", "scripts", "build-tools", "upstream.lock.json", ".dockerignore", ".github/workflows/ci.yml"]
 
 SHARED_ROOT = {
     "RUST_IMAGES": ["packages/rust"],
@@ -41,7 +41,7 @@ SHARED_ROOT = {
 
 # What build-session.sh stages into the build context, by what it is built from.
 STAGED = {
-    ".local/sdk-artifacts/": ["sdk.lock"],
+    ".local/sdk-artifacts/": ["upstream.lock.json"],
     ".local/shared-python-packages/": ["shared/python"],
     "${BROWSER_PACKAGE_DIR}": ["browser"],
 }

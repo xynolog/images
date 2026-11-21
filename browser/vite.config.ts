@@ -5,12 +5,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// The app's own version, for the Settings panel's About block. Read from
-// package.json at build time rather than carried in an env var.
-const pkgVersion = createRequire(import.meta.url)('./package.json').version as string;
+// The app's own version, for the Settings panel's About block: the repository's
+// one version, read from version.json beside this directory at build time.
+const { version } = createRequire(import.meta.url)('../version.json') as { version: string };
+if (typeof version !== 'string') throw new Error('version.json states no version');
 
 export default defineConfig({
-  define: { __APP_VERSION__: JSON.stringify(pkgVersion) },
+  define: { __APP_VERSION__: JSON.stringify(version) },
   plugins: [react()],
   resolve: {
     alias: {

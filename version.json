@@ -1,11 +1,3 @@
 {
-  "version": "0.7.3",
-  "packages": {
-    "xynolog-browser": {
-      "dir": "browser",
-      "stage": ".npm-stage/browser",
-      "version": "0.7.3",
-      "publish": true
-    }
-  }
+  "version": "0.7.3"
 }

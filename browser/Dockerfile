@@ -1,12 +1,13 @@
 # Stage 1: install (npm runs here, then is discarded).
 FROM node:26-alpine AS installer
-ARG XYNOLOG_BROWSER_VERSION=latest
+# Both are required: the package built for this image (scripts/build-browser-package.sh),
+# at the repository's version.
+ARG XYNOLOG_BROWSER_VERSION
 ARG BROWSER_PACKAGE_DIR
 WORKDIR /app
 COPY ${BROWSER_PACKAGE_DIR}/ /sdk-artifacts/browser/
-# Cache mount: persists across --no-cache builds, never enters the image, and
-# republished @xynolog/* still fetch fresh. No `npm cache clean` — the cache
-# never reaches a layer.
+# The package is a local tarball with no dependencies. Cache mount: persists
+# across --no-cache builds and never enters the image, so no `npm cache clean`.
 RUN --mount=type=cache,target=/root/.npm \
     npm init -y && \
     npm install /sdk-artifacts/browser/xynolog-browser-${XYNOLOG_BROWSER_VERSION}.tgz

@@ -1,6 +1,5 @@
 {
-  "name": "xynolog-browser",
-  "version": "0.7.3",
+  "name": "@xynolog/browser",
   "engines": {
     "node": ">=24.15.0"
   },

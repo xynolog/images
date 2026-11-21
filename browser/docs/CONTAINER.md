@@ -54,14 +54,16 @@ One runtime variable:
 | `PORT` | run time | The port the static server listens on. Default `3000` |
 | `/discovery` | run time | A read-only mount the launcher uses to tell the app which knowledge bases are running on the machine. Optional |
 
-There are no `XYNOLOG_*` variables. The bundle is built when the `@xynolog/browser` npm package
-is published, and the server does no templating.
+There are no `XYNOLOG_*` variables. The bundle is built when this repository packs the
+`@xynolog/browser` package for the image, and the server does no templating.
 
 ## What is in it
 
 - **Base image:** Node 26 on Alpine, as the [Dockerfile](../Dockerfile)'s `FROM` names it.
-- **Contents:** the published `@xynolog/browser` npm package, installed at the image's version.
-  The image does not build from source.
+- **Contents:** the `@xynolog/browser` package, at the image's version, which
+  [`scripts/build-browser-package.sh`](../../scripts/build-browser-package.sh) builds from this
+  directory and the SDK bundle and packs. The package is never published to a registry, and the
+  image installs it from that file rather than building from source.
 - **Entrypoint:** `tini`, then `node node_modules/@xynolog/browser/server.js`.
 - **Health check:** built in. It requests `/` every 30 seconds.
 - **Logs:** one line when the server starts listening, and any server error. It does not log
@@ -72,9 +74,9 @@ file, and serves `/discovery/*` from its mount: a file or a 404, never the app.
 
 ## Tags
 
-- **The version**: the `@xynolog/browser` package version in the image.
+- **The version**: the release, `YY.M.N`, which is every image's version and the package's.
 - **`sha-<commit>`**: the commit the image was published from.
-- **`latest`**: moved to a release when it is promoted. It is what the launcher names in the
+- **`latest`**: moved to each release as it is published. It is what the launcher names in the
   Browser's document when it writes one; the document's `spec.image` decides what runs.
 
 A tag can be moved and a digest cannot. To pin exactly what you verified, reference the image
@@ -82,23 +84,25 @@ by digest ([Container Images](https://github.com/xynolog/docs/blob/main/operator
 
 ## Building it yourself
 
-The image is built from [`browser/Dockerfile`](../Dockerfile). Its build arguments are the
-package version to install and the registry to install it from:
+The image is built from [`browser/Dockerfile`](../Dockerfile), from the package
+`scripts/build-browser-package.sh` packs. Both build arguments are required:
 
 ```bash
-# From the repository root
+# From the repository root, with a verified SDK bundle
+bash scripts/build-browser-package.sh <sdk-bundle-directory>
 docker build \
-  --build-arg XYNOLOG_BROWSER_VERSION=<version> \
+  --build-arg XYNOLOG_BROWSER_VERSION="$(node -p 'require("./version.json").version')" \
+  --build-arg BROWSER_PACKAGE_DIR=.local/browser-package \
   -t ghcr.io/xynolog/xynolog-browser:custom \
   -f browser/Dockerfile .
 ```
 
-| Build argument | Default | |
-|---|---|---|
-| `XYNOLOG_BROWSER_VERSION` | `latest` | The `@xynolog/browser` version to install |
-| `NPM_REGISTRY` | `https://registry.npmjs.org` | The registry to install it from |
+| Build argument | |
+|---|---|
+| `XYNOLOG_BROWSER_VERSION` | The package's version, `version.json`'s |
+| `BROWSER_PACKAGE_DIR` | The directory, in the build context, that holds the packed package |
 
-To run a change that is not published, build every image from your working tree with
+To run a change, build every image from your working tree with
 [`make build`](../../Makefile)
 ([Local Development](https://github.com/xynolog/docs/blob/main/contributor/LOCAL-DEVELOPMENT.md)). Published images come
 from the `publish-browser.yml` workflow: scanned, with an SBOM and build provenance attested.

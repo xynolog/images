@@ -29,62 +29,15 @@ jobs:
     permissions:
       issues: write
 
-  # Every run builds or restores it: the image builds install from it, and the
-  # advisories and crates jobs, which run every time, resolve against it.
+  # Every run gates upstream.lock.json and builds, restores or downloads the
+  # SDK bundle, the artifact `sdk-artifacts`: the image builds install from it,
+  # and the advisories and crates jobs, which run every time, resolve against
+  # it.
   sdk:
-    name: SDK bundle from the pinned SDK commit
-    runs-on: ubuntu-latest
-    env:
-      SDK_LANGUAGES: typescript python rust codegen
-    steps:
-      - uses: actions/checkout@v7.0.1
-
-      - name: Read the SDK pin
-        id: pin
-        run: python3 -c 'import json; print("commit=" + json.load(open("sdk.lock"))["commit"])' >> "$GITHUB_OUTPUT"
-
-      - name: Restore the bundle built from the pin
-        id: cache
-        uses: actions/cache@v6.1.0
-        with:
-          path: ${{ runner.temp }}/sdk-artifacts
-          key: xynolog-sdk-${{ steps.pin.outputs.commit }}-${{ env.SDK_LANGUAGES }}
-
-      - name: Check out the pinned SDK
-        if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions/checkout@v7.0.1
-        with:
-          repository: xynolog/sdk
-          ref: ${{ steps.pin.outputs.commit }}
-          path: .xynolog-sdk
-          submodules: recursive
-
-      - name: Build the bundle
-        if: steps.cache.outputs.cache-hit != 'true'
-        env:
-          BUNDLE: ${{ runner.temp }}/sdk-artifacts
-        run: |
-          built="$(bash .xynolog-sdk/scripts/resolve-artifact-bundle.sh $SDK_LANGUAGES)"
-          cp -a "$built" "$BUNDLE"
-
-      - name: Verify the bundle against the SDK and Protocol pins
-        env:
-          BUNDLE: ${{ runner.temp }}/sdk-artifacts
-          SDK_COMMIT: ${{ steps.pin.outputs.commit }}
-        run: |
-          languages=()
-          for language in $SDK_LANGUAGES; do languages+=(--language "$language"); done
-          python3 "$BUNDLE/tools/verify-artifact-bundle.py" "$BUNDLE" \
-            --sdk-commit "$SDK_COMMIT" \
-            --protocol-commit "$(git ls-tree HEAD protocol | awk '{print $3}')" \
-            "${languages[@]}"
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: sdk-artifacts
-          path: ${{ runner.temp }}/sdk-artifacts
-          if-no-files-found: error
-          include-hidden-files: true
+    uses: xynolog/sdk/.github/workflows/upstream.yml@52c59e698b3ee821113f350539f521f6c9df6e1d
+    with:
+      languages: typescript python rust codegen
+      release: false
 
   checks:
     name: Make help and the images this change affects
@@ -306,7 +259,7 @@ jobs:
         uses: actions/cache/restore@v6.1.0
         with:
           path: ~/.cache/xynolog-images/rust
-          key: ${{ runner.os }}-${{ runner.arch }}-rust-${{ hashFiles('packages/rust/rust-toolchain.toml', 'packages/rust/Cargo.lock', 'sdk.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-rust-${{ hashFiles('packages/rust/rust-toolchain.toml', 'packages/rust/Cargo.lock', 'upstream.lock.json') }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-rust-
 
