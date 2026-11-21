@@ -49,17 +49,25 @@ export async function sessionFor(opts: {
     kind: 'http' as const,
     host: url.hostname,
     port: Number(url.port || (url.protocol === 'https:' ? 443 : 80)),
-    protocol: url.protocol === 'https:' ? ('https' as const) : ('http' as const),
+    protocol:
+      url.protocol === 'https:' ? ('https' as const) : ('http' as const),
   };
   const storage = new InMemorySessionStorage();
-  const authorizationUrl = await beginAuthorization({ target: endpoint, redirectUri: CALLBACK }, storage);
+  const authorizationUrl = await beginAuthorization(
+    { target: endpoint, redirectUri: CALLBACK },
+    storage,
+  );
 
   const browser = await chromium.launch();
   let callbackUrl: string;
   try {
     const page = await browser.newPage();
-    await page.route(`${CALLBACK}*`, (route) => route.fulfill({ status: 200, body: 'signed in' }));
-    const returned = page.waitForRequest((request) => request.url().startsWith(CALLBACK));
+    await page.route(`${CALLBACK}*`, (route) =>
+      route.fulfill({ status: 200, body: 'signed in' }),
+    );
+    const returned = page.waitForRequest((request) =>
+      request.url().startsWith(CALLBACK),
+    );
     await page.goto(authorizationUrl);
     // The issuer's login page. These are the ids of the launcher-run
     // Keycloak's default theme — the e2e stack's issuer, not a Xynolog surface.
@@ -95,7 +103,9 @@ export async function sessionFor(opts: {
     refresh: tokens.refresh,
     clientId: BROWSER_CLIENT_ID,
     tokenEndpoint: pending.issuer.token,
-    ...(pending.issuer.revocation ? { revocationEndpoint: pending.issuer.revocation } : {}),
+    ...(pending.issuer.revocation
+      ? { revocationEndpoint: pending.issuer.revocation }
+      : {}),
   });
   return XynologSession.fromKept({
     kb: httpKb({

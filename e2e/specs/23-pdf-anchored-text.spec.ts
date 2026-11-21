@@ -46,7 +46,8 @@ const QUOTE_WORDS = ['RECOVERED', 'PIXELS'];
 /** The path of the anchored-text read, whatever the gateway's origin. */
 const ANCHORED_TEXT_PATH = /\/resources\/[^/]+\/anchored-text$/;
 
-const resourceIdFromUrl = (page: Page) => page.url().split('/').pop()!.split('?')[0];
+const resourceIdFromUrl = (page: Page) =>
+  page.url().split('/').pop()!.split('?')[0];
 
 /** Read the STORED annotations the way any client would — a separate signed-in
  *  client, so a pass proves the quote persisted rather than that the browser
@@ -89,7 +90,11 @@ async function openScannedPdfInAnnotateMode(page: Page) {
  * this first waits for the canvas to say it does.
  */
 async function armRectangleDrawing(page: Page) {
-  await expect(page.locator(CANVAS)).toHaveAttribute('data-annotate-deferred', 'false', { timeout: 60_000 });
+  await expect(page.locator(CANVAS)).toHaveAttribute(
+    'data-annotate-deferred',
+    'false',
+    { timeout: 60_000 },
+  );
 
   await page.getByRole('button', { name: /^motivation$/i }).click();
   await page.getByRole('menuitem', { name: /^none$/i }).click();
@@ -97,22 +102,36 @@ async function armRectangleDrawing(page: Page) {
   await page.getByRole('menuitem', { name: /^highlight$/i }).click();
   await page.getByRole('button', { name: /^shape$/i }).click();
   await page.getByRole('menuitem', { name: /^rectangle$/i }).click();
-  await expect(page.locator(CONTAINER)).toHaveAttribute('data-drawing-mode', 'rectangle', { timeout: 5_000 });
+  await expect(page.locator(CONTAINER)).toHaveAttribute(
+    'data-drawing-mode',
+    'rectangle',
+    { timeout: 5_000 },
+  );
 }
 
 /** Drag in canvas pixels; jsdom-free here, so use the image's own box. */
-async function drawOver(page: Page, top: number, height: number, left = 60, right = 380) {
+async function drawOver(
+  page: Page,
+  top: number,
+  height: number,
+  left = 60,
+  right = 380,
+) {
   const box = await page.locator(IMG).boundingBox();
   if (!box) throw new Error('PDF image has no bounding box');
   const scale = box.height / 792;
   await page.mouse.move(box.x + left * scale, box.y + top * scale);
   await page.mouse.down();
-  await page.mouse.move(box.x + right * scale, box.y + (top + height) * scale, { steps: 10 });
+  await page.mouse.move(box.x + right * scale, box.y + (top + height) * scale, {
+    steps: 10,
+  });
   await page.mouse.up();
 }
 
 test.describe('scanned PDF annotations quote the server-derived map', () => {
-  test('the canvas asks the server for the map', async ({ signedInPage: page }) => {
+  test('the canvas asks the server for the map', async ({
+    signedInPage: page,
+  }) => {
     test.setTimeout(120_000);
 
     // The ask is an HTTP GET, not a bus request: an anchored text is as large
@@ -136,7 +155,10 @@ test.describe('scanned PDF annotations quote the server-derived map', () => {
     expect(typeof (await response.json()).kind).toBe('string');
   });
 
-  test('a rectangle quotes the map the server returned', async ({ signedInPage: page, bus }) => {
+  test('a rectangle quotes the map the server returned', async ({
+    signedInPage: page,
+    bus,
+  }) => {
     test.setTimeout(120_000);
 
     // NOTHING IS MOCKED. The Smelter OCR'd this fixture at ingest and the
@@ -150,7 +172,9 @@ test.describe('scanned PDF annotations quote the server-derived map', () => {
     // the residue.
     await openLegibleScanInAnnotateMode(page);
     const idsBefore = new Set(
-      (await storedAnnotations(resourceIdFromUrl(page))).map((a) => String(a.id)),
+      (await storedAnnotations(resourceIdFromUrl(page))).map((a) =>
+        String(a.id),
+      ),
     );
     await armRectangleDrawing(page);
     bus.clear();
@@ -159,22 +183,36 @@ test.describe('scanned PDF annotations quote the server-derived map', () => {
     // from the map the Smelter returns). Cover both lines, with margin.
     await drawOver(page, toCanvas(642, 0) - 6, 112, 40, 470);
 
-    await bus.expectRequestResponse('mark:create-request', 'mark:create-ok', 30_000);
+    await bus.expectRequestResponse(
+      'mark:create-request',
+      'mark:create-ok',
+      30_000,
+    );
 
     const after = await storedAnnotations(resourceIdFromUrl(page));
     const stored = after.filter((a) => !idsBefore.has(String(a.id)));
-    expect(stored.length, 'the drawn rectangle persisted a NEW annotation').toBeGreaterThan(0);
+    expect(
+      stored.length,
+      'the drawn rectangle persisted a NEW annotation',
+    ).toBeGreaterThan(0);
 
     const quotes = stored.flatMap((a) => {
       const sel = (a.target as { selector?: unknown }).selector;
       const all = Array.isArray(sel) ? sel : sel ? [sel] : [];
       return all
-        .filter((x): x is { type: string; exact: string } =>
-          typeof x === 'object' && x !== null && (x as { type?: string }).type === 'TextQuoteSelector')
+        .filter(
+          (x): x is { type: string; exact: string } =>
+            typeof x === 'object' &&
+            x !== null &&
+            (x as { type?: string }).type === 'TextQuoteSelector',
+        )
         .map((x) => x.exact);
     });
 
-    expect(quotes.length, 'the rectangle produced a TextQuoteSelector').toBeGreaterThan(0);
+    expect(
+      quotes.length,
+      'the rectangle produced a TextQuoteSelector',
+    ).toBeGreaterThan(0);
     const quoted = quotes.join(' ').toUpperCase();
     for (const word of QUOTE_WORDS) {
       expect(
@@ -186,8 +224,13 @@ test.describe('scanned PDF annotations quote the server-derived map', () => {
     // And the same text reaches the reader.
     await expect(page.locator('.xynolog-unified-panel')).toBeVisible();
     await expect
-      .poll(async () => (await page.locator('.xynolog-unified-panel').innerText()).toUpperCase().includes('PIXELS'),
-        { timeout: 30_000 })
+      .poll(
+        async () =>
+          (await page.locator('.xynolog-unified-panel').innerText())
+            .toUpperCase()
+            .includes('PIXELS'),
+        { timeout: 30_000 },
+      )
       .toBe(true);
   });
 });

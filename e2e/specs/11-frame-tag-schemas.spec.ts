@@ -88,7 +88,8 @@ const E2E_TAG_SCHEMA: TagSchema = {
     },
     {
       name: 'Mechanism',
-      description: 'A described physical process, operation, or measurement procedure.',
+      description:
+        'A described physical process, operation, or measurement procedure.',
       examples: [
         'measurement collapses the qubit to a basis state',
         'operations on one entangled qubit affect the others',
@@ -98,132 +99,162 @@ const E2E_TAG_SCHEMA: TagSchema = {
 };
 
 test.describe('frame tag-schema registry + tagging round-trip', () => {
-  test('register schema, observe bridged broadcast, reject unknown schemaId, apply via mark.delegate, verify annotation body shape', { tag: ['@model'] }, async ({
-    signedInPage: page,
-    bus,
-  }) => {
-    test.setTimeout(120_000);
+  test(
+    'register schema, observe bridged broadcast, reject unknown schemaId, apply via mark.delegate, verify annotation body shape',
+    { tag: ['@model'] },
+    async ({ signedInPage: page, bus }) => {
+      test.setTimeout(120_000);
 
-    // The page is signed in and connected to the gateway's SSE feed.
-    // Operations on a parallel SDK client below generate events on the
-    // gateway; bridged events fan out to the page's bus.
-    await page.goto('/en/know/discover');
-    // Wait for at least one resource card to render — proves the page's
-    // session is fully connected before we start poking via the SDK.
-    await expect(
-      page.getByRole('button', { name: /^open resource:/i }).first(),
-    ).toBeVisible({ timeout: 15_000 });
-
-    // Build a parallel SDK client. Same gateway, same user. This is the
-    // shape every production caller takes (see seed.ts and the demo-KB
-    // skills); the test exercises the SDK end-to-end rather than poking
-    // bus channels directly.
-    const opened = await signInSession();
-    const client = opened.session.client;
-
-    try {
-      // ── Phase 1: registration round-trip ──────────────────────────
-      bus.clear();
-      await client.frame.addTagSchema(E2E_TAG_SCHEMA);
-
-      // Bridged broadcast must reach the page's bus via SSE. If this
-      // times out, `frame:tag-schema-added` isn't reaching the
-      // frontend (see BRIDGED_CHANNELS).
-      await bus.waitForRecv('frame:tag-schema-added', { timeout: 10_000 });
-
-      // ── Phase 2: projection visibility ────────────────────────────
-      //
-      // The schema must appear in browse.tagSchemas(). The cache
-      // backing this method invalidates on `frame:tag-schema-added`,
-      // so the await will refetch.
-      // Cache reads are not awaitable — `.fresh()` is the explicit
-      // one-shot network read (rejects on failure). Awaiting the
-      // CacheObservable itself silently yields the observable, not the value.
-      const schemas = await client.browse.tagSchemas().fresh();
-      const found = schemas.find((s) => s.id === E2E_TAG_SCHEMA.id);
-      expect(
-        found,
-        'registered schema should appear in browse.tagSchemas()',
-      ).toBeDefined();
-      expect(found!.tags.map((t) => t.name)).toEqual(
-        E2E_TAG_SCHEMA.tags.map((t) => t.name),
-      );
-
-      // ── Phase 3: dispatcher rejects unknown schemaId ──────────────
-      //
-      // mark.delegate against a schemaId that isn't in the projection
-      // must reject synchronously. The contract: the dispatcher
-      // resolves schemaId → TagSchema at job-creation time, so an
-      // unknown id surfaces as a synchronous BusRequestError
-      // (job:create-failed) rather than a worker-time "Invalid tag
-      // schema" exception.
-      //
-      // Find any seeded resource — we just need a valid resourceId for
-      // the call shape.
-      const { resources } = await client.browse.resources({ limit: 50 }).fresh();
-      expect(resources.length, 'seeded KB must have ≥1 resource').toBeGreaterThan(0);
-      const target = resources.find((r) => r.name === 'Quantum Computing Primer') ?? resources[0]!;
-      const targetId = ridBrand(target['@id']);
-
+      // The page is signed in and connected to the gateway's SSE feed.
+      // Operations on a parallel SDK client below generate events on the
+      // gateway; bridged events fan out to the page's bus.
+      await page.goto('/en/know/discover');
+      // Wait for at least one resource card to render — proves the page's
+      // session is fully connected before we start poking via the SDK.
       await expect(
-        client.mark.delegate(targetId, {
+        page.getByRole('button', { name: /^open resource:/i }).first(),
+      ).toBeVisible({ timeout: 15_000 });
+
+      // Build a parallel SDK client. Same gateway, same user. This is the
+      // shape every production caller takes (see seed.ts and the demo-KB
+      // skills); the test exercises the SDK end-to-end rather than poking
+      // bus channels directly.
+      const opened = await signInSession();
+      const client = opened.session.client;
+
+      try {
+        // ── Phase 1: registration round-trip ──────────────────────────
+        bus.clear();
+        await client.frame.addTagSchema(E2E_TAG_SCHEMA);
+
+        // Bridged broadcast must reach the page's bus via SSE. If this
+        // times out, `frame:tag-schema-added` isn't reaching the
+        // frontend (see BRIDGED_CHANNELS).
+        await bus.waitForRecv('frame:tag-schema-added', { timeout: 10_000 });
+
+        // ── Phase 2: projection visibility ────────────────────────────
+        //
+        // The schema must appear in browse.tagSchemas(). The cache
+        // backing this method invalidates on `frame:tag-schema-added`,
+        // so the await will refetch.
+        // Cache reads are not awaitable — `.fresh()` is the explicit
+        // one-shot network read (rejects on failure). Awaiting the
+        // CacheObservable itself silently yields the observable, not the value.
+        const schemas = await client.browse.tagSchemas().fresh();
+        const found = schemas.find((s) => s.id === E2E_TAG_SCHEMA.id);
+        expect(
+          found,
+          'registered schema should appear in browse.tagSchemas()',
+        ).toBeDefined();
+        expect(found!.tags.map((t) => t.name)).toEqual(
+          E2E_TAG_SCHEMA.tags.map((t) => t.name),
+        );
+
+        // ── Phase 3: dispatcher rejects unknown schemaId ──────────────
+        //
+        // mark.delegate against a schemaId that isn't in the projection
+        // must reject synchronously. The contract: the dispatcher
+        // resolves schemaId → TagSchema at job-creation time, so an
+        // unknown id surfaces as a synchronous BusRequestError
+        // (job:create-failed) rather than a worker-time "Invalid tag
+        // schema" exception.
+        //
+        // Find any seeded resource — we just need a valid resourceId for
+        // the call shape.
+        const { resources } = await client.browse
+          .resources({ limit: 50 })
+          .fresh();
+        expect(
+          resources.length,
+          'seeded KB must have ≥1 resource',
+        ).toBeGreaterThan(0);
+        const target =
+          resources.find((r) => r.name === 'Quantum Computing Primer') ??
+          resources[0]!;
+        const targetId = ridBrand(target['@id']);
+
+        await expect(
+          client.mark.delegate(targetId, {
+            motivation: 'tagging',
+            schemaId: 'definitely-not-registered-schema-id',
+            categories: ['Concept'],
+          }),
+        ).rejects.toThrow(/Tag schema not registered/);
+
+        // ── Phase 4: real tagging round-trip ──────────────────────────
+        //
+        // Run the LLM tagging pass against the registered schema.
+        // Awaiting the delegation gives the job's completion (its
+        // JobCompleteCommand). If the worker failed, the await rejects.
+        const done = await client.mark.delegate(targetId, {
           motivation: 'tagging',
-          schemaId: 'definitely-not-registered-schema-id',
-          categories: ['Concept'],
-        }),
-      ).rejects.toThrow(/Tag schema not registered/);
+          schemaId: E2E_TAG_SCHEMA.id,
+          categories: E2E_TAG_SCHEMA.tags.map((t) => t.name),
+        });
+        // Awaited, a delegation resolves on the job's completion. A mark job's
+        // result is its counts or a decline; the counts say it did its work.
+        expect(
+          done.result !== undefined && 'found' in done.result,
+          'the tagging job reports its counts',
+        ).toBe(true);
 
-      // ── Phase 4: real tagging round-trip ──────────────────────────
-      //
-      // Run the LLM tagging pass against the registered schema.
-      // Awaiting the delegation gives the job's completion (its
-      // JobCompleteCommand). If the worker failed, the await rejects.
-      const done = await client.mark.delegate(targetId, {
-        motivation: 'tagging',
-        schemaId: E2E_TAG_SCHEMA.id,
-        categories: E2E_TAG_SCHEMA.tags.map((t) => t.name),
-      });
-      // Awaited, a delegation resolves on the job's completion. A mark job's
-      // result is its counts or a decline; the counts say it did its work.
-      expect(done.result !== undefined && 'found' in done.result, 'the tagging job reports its counts').toBe(true);
+        // Walk the resource's annotations and pick out the ones this
+        // run created — `motivation: 'tagging'` with a classifying body
+        // identifying our schema.
+        const annotations = await client.browse.annotations(targetId).fresh();
+        const ours = annotations.filter((a) => {
+          if (a.motivation !== 'tagging') return false;
+          const bodies = Array.isArray(a.body)
+            ? a.body
+            : a.body
+              ? [a.body]
+              : [];
+          return bodies
+            .filter((b) => b.type === 'TextualBody')
+            .some(
+              (b) =>
+                b.purpose === 'classifying' && b.value === E2E_TAG_SCHEMA.id,
+            );
+        });
+        expect(
+          ours.length,
+          `at least one tagging annotation under schema "${E2E_TAG_SCHEMA.id}" should have been created`,
+        ).toBeGreaterThan(0);
 
-      // Walk the resource's annotations and pick out the ones this
-      // run created — `motivation: 'tagging'` with a classifying body
-      // identifying our schema.
-      const annotations = await client.browse.annotations(targetId).fresh();
-      const ours = annotations.filter((a) => {
-        if (a.motivation !== 'tagging') return false;
-        const bodies = Array.isArray(a.body) ? a.body : a.body ? [a.body] : [];
-        return bodies
-          .filter((b) => b.type === 'TextualBody')
-          .some((b) => b.purpose === 'classifying' && b.value === E2E_TAG_SCHEMA.id);
-      });
-      expect(
-        ours.length,
-        `at least one tagging annotation under schema "${E2E_TAG_SCHEMA.id}" should have been created`,
-      ).toBeGreaterThan(0);
+        // Inspect the canonical two-body shape on the first hit. The
+        // dispatcher embeds the full TagSchema in TagDetectionParams,
+        // and the processor stamps `params.schema.id` into the
+        // classifying body — so the value here is load-bearing proof
+        // that the worker pipeline used the embedded schema.
+        const ann = ours[0]!;
+        const bodies = Array.isArray(ann.body)
+          ? ann.body
+          : ann.body
+            ? [ann.body]
+            : [];
+        const textualBodies = bodies.filter((b) => b.type === 'TextualBody');
+        const classifyingBody = textualBodies.find(
+          (b) => b.purpose === 'classifying',
+        );
+        const taggingBody = textualBodies.find((b) => b.purpose === 'tagging');
 
-      // Inspect the canonical two-body shape on the first hit. The
-      // dispatcher embeds the full TagSchema in TagDetectionParams,
-      // and the processor stamps `params.schema.id` into the
-      // classifying body — so the value here is load-bearing proof
-      // that the worker pipeline used the embedded schema.
-      const ann = ours[0]!;
-      const bodies = Array.isArray(ann.body) ? ann.body : ann.body ? [ann.body] : [];
-      const textualBodies = bodies.filter((b) => b.type === 'TextualBody');
-      const classifyingBody = textualBodies.find((b) => b.purpose === 'classifying');
-      const taggingBody = textualBodies.find((b) => b.purpose === 'tagging');
+        expect(
+          classifyingBody,
+          'tagging annotation must carry a classifying body',
+        ).toBeDefined();
+        expect(classifyingBody?.value).toBe(E2E_TAG_SCHEMA.id);
 
-      expect(classifyingBody, 'tagging annotation must carry a classifying body').toBeDefined();
-      expect(classifyingBody?.value).toBe(E2E_TAG_SCHEMA.id);
-
-      expect(taggingBody, 'tagging annotation must carry a tagging body').toBeDefined();
-      expect(
-        E2E_TAG_SCHEMA.tags.map((t) => t.name),
-        'tagging body value must be one of the registered category names',
-      ).toContain(taggingBody?.value);
-    } finally {
-      opened.dispose();
-    }
-  });
+        expect(
+          taggingBody,
+          'tagging annotation must carry a tagging body',
+        ).toBeDefined();
+        expect(
+          E2E_TAG_SCHEMA.tags.map((t) => t.name),
+          'tagging body value must be one of the registered category names',
+        ).toContain(taggingBody?.value);
+      } finally {
+        opened.dispose();
+      }
+    },
+  );
 });

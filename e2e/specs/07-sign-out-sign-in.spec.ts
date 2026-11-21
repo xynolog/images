@@ -26,7 +26,10 @@ import { E2E_EMAIL, E2E_PASSWORD } from '../playwright.config';
  * `beginSignIn` → `window.location.assign`).
  */
 test.describe('sign out and sign back in', () => {
-  test('a fresh session after sign-out round-trips through the bus', async ({ signedInPage: page, bus }) => {
+  test('a fresh session after sign-out round-trips through the bus', async ({
+    signedInPage: page,
+    bus,
+  }) => {
     // First session exists. Navigate somewhere we can hit the bus from.
     await page.goto('/en/know/discover');
     await expect(page).toHaveURL(/\/know\/discover/);
@@ -83,10 +86,16 @@ test.describe('sign out and sign back in', () => {
     // `browse:resource-requested` and expects `browse:resource-result`
     // on the new session's bus — exactly the round-trip 02 relies on,
     // but here proving it works after a dispose/reconstruct cycle.
-    const firstCard = page.getByRole('button', { name: /^open resource:/i }).first();
+    const firstCard = page
+      .getByRole('button', { name: /^open resource:/i })
+      .first();
     await expect(firstCard).toBeVisible({ timeout: 15_000 });
     await firstCard.click();
 
-    await bus.expectRequestResponse('browse:resource-requested', 'browse:resource-result', 30_000);
+    await bus.expectRequestResponse(
+      'browse:resource-requested',
+      'browse:resource-result',
+      30_000,
+    );
   });
 });

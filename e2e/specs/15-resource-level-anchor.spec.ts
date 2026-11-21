@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { getTargetSource, getTargetSelector, getBodySource } from '@xynolog/core';
+import {
+  getTargetSource,
+  getTargetSelector,
+  getBodySource,
+} from '@xynolog/core';
 import { signInSession } from '../fixtures/sdk-session';
 
 /**
@@ -63,22 +67,36 @@ test.describe('resource-level anchor', () => {
           { type: 'TextualBody', purpose: 'tagging', value: 'supports' },
         ],
       });
-      expect(annotationId, 'source-only annotation was created (not rejected)').toBeTruthy();
+      expect(
+        annotationId,
+        'source-only annotation was created (not rejected)',
+      ).toBeTruthy();
 
       // Served by browse.annotations(A) — poll for SSE/cache delivery.
       await expect
         // `.fresh()` is the explicit one-shot read: a CacheObservable is not awaitable.
-        .poll(async () => (await client.browse.annotations(a).fresh()).some((x) => x.id === annotationId), {
-          timeout: 30_000,
-        })
+        .poll(
+          async () =>
+            (await client.browse.annotations(a).fresh()).some(
+              (x) => x.id === annotationId,
+            ),
+          {
+            timeout: 30_000,
+          },
+        )
         .toBe(true);
 
-      const created = (await client.browse.annotations(a).fresh()).find((x) => x.id === annotationId);
+      const created = (await client.browse.annotations(a).fresh()).find(
+        (x) => x.id === annotationId,
+      );
       expect(created, 'annotation served by browse.annotations').toBeTruthy();
 
       // Source-only: target points at A with NO selector.
       expect(getTargetSource(created!.target)).toBe(a);
-      expect(getTargetSelector(created!.target), 'whole-resource target carries no selector').toBeFalsy();
+      expect(
+        getTargetSelector(created!.target),
+        'whole-resource target carries no selector',
+      ).toBeFalsy();
 
       // The SpecificResource body edge resolves to B.
       expect(getBodySource(created!.body)).toBe(b);

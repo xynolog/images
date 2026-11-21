@@ -13,7 +13,10 @@ import { openResourceByName } from '../fixtures/discover';
  * annotations refetch → UI re-renders with the new highlight.
  */
 test.describe('manual highlight', () => {
-  test('selecting text in annotate+highlight mode produces a persisted highlight', async ({ signedInPage: page, bus }) => {
+  test('selecting text in annotate+highlight mode produces a persisted highlight', async ({
+    signedInPage: page,
+    bus,
+  }) => {
     // A NAMED text seed, not "the first card". This test needs CodeMirror,
     // and CodeMirror only mounts for text-bearing resources — a PDF renders
     // the page-rail viewer instead and `.cm-content` never appears. Discover
@@ -26,7 +29,7 @@ test.describe('manual highlight', () => {
     const highlightEntries = page.locator('[data-type="highlight"]');
     const highlightsBefore = await highlightEntries.count();
 
-    bus.clear();  // Only care about traffic from the highlight action onward.
+    bus.clear(); // Only care about traffic from the highlight action onward.
 
     // Switch to annotate mode via the toolbar. Browse mode renders the
     // resource as plain HTML; annotate mode swaps in CodeMirror, which
@@ -55,7 +58,9 @@ test.describe('manual highlight', () => {
     await page.getByRole('button', { name: /^motivation$/i }).click();
     await page.getByRole('menuitem', { name: /^highlight$/i }).click();
     await expect(
-      page.getByRole('button', { name: /^motivation$/i }).filter({ hasText: /highlight/i })
+      page
+        .getByRole('button', { name: /^motivation$/i })
+        .filter({ hasText: /highlight/i }),
     ).toBeVisible({ timeout: 5_000 });
 
     // Select a slice of text inside CodeMirror's content area. We use
@@ -76,7 +81,9 @@ test.describe('manual highlight', () => {
         totalChars += node.nodeValue?.length ?? 0;
       }
       if (totalChars < 2) {
-        throw new Error(`content area has only ${totalChars} chars; cannot select`);
+        throw new Error(
+          `content area has only ${totalChars} chars; cannot select`,
+        );
       }
 
       // Pick a span of up to 10 chars, at most half the content length,
@@ -98,7 +105,7 @@ test.describe('manual highlight', () => {
         }
         if (startNode && running + len >= targetStart + targetLen) {
           endNode = node;
-          endOff = (targetStart + targetLen) - running;
+          endOff = targetStart + targetLen - running;
           break;
         }
         running += len;
@@ -123,7 +130,11 @@ test.describe('manual highlight', () => {
     // with matching cid. This is the chain that a scope bug (emit routed
     // to a dead subject) or an optimistic ack (mark:create-ok fired before
     // persistence) breaks.
-    await bus.expectRequestResponse('mark:create-request', 'mark:create-ok', 30_000);
+    await bus.expectRequestResponse(
+      'mark:create-request',
+      'mark:create-ok',
+      30_000,
+    );
 
     // UI-level confirmation: the highlight is rendered somewhere in
     // the DOM. A single logical highlight produces several matching
@@ -144,7 +155,9 @@ test.describe('manual highlight', () => {
     const urlBeforeReload = page.url();
     await page.reload();
     await expect(page).toHaveURL(urlBeforeReload);
-    await expect(page.getByText(/loading resource/i)).toBeHidden({ timeout: 30_000 });
+    await expect(page.getByText(/loading resource/i)).toBeHidden({
+      timeout: 30_000,
+    });
 
     await expect
       .poll(async () => highlightEntries.count(), { timeout: 30_000 })

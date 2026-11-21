@@ -91,19 +91,25 @@ export class BusLogCapture {
   /** Generic op + optional channel filter. */
   byOp(op: BusOp, channel?: string): BusLogEntry[] {
     return this.entries.filter(
-      e => e.op === op && (channel === undefined || e.channel === channel),
+      (e) => e.op === op && (channel === undefined || e.channel === channel),
     );
   }
 
   // ── Polling waiters ───────────────────────────────────────────────────
 
   /** Poll until a RECV for `channel` (optionally matching `cid`) appears, or time out. */
-  async waitForRecv(channel: string, opts: { cid?: string; timeout?: number } = {}): Promise<BusLogEntry> {
+  async waitForRecv(
+    channel: string,
+    opts: { cid?: string; timeout?: number } = {},
+  ): Promise<BusLogEntry> {
     return this.waitForOp('RECV', channel, opts);
   }
 
   /** Poll until an EMIT for `channel` appears. */
-  async waitForEmit(channel: string, opts: { cid?: string; timeout?: number } = {}): Promise<BusLogEntry> {
+  async waitForEmit(
+    channel: string,
+    opts: { cid?: string; timeout?: number } = {},
+  ): Promise<BusLogEntry> {
     return this.waitForOp('EMIT', channel, opts);
   }
 
@@ -127,15 +133,18 @@ export class BusLogCapture {
     const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {
       const hit = this.entries.find(
-        e => e.op === op && e.channel === channel && (!opts.cid || e.cid === opts.cid),
+        (e) =>
+          e.op === op &&
+          e.channel === channel &&
+          (!opts.cid || e.cid === opts.cid),
       );
       if (hit) return hit;
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise((r) => setTimeout(r, 50));
     }
     throw new Error(
       `Timed out after ${timeout}ms waiting for ${op} on "${channel}"` +
         (opts.cid ? ` with cid=${opts.cid}` : '') +
-        `. Recent entries: ${JSON.stringify(this.entries.slice(-10).map(e => ({ op: e.op, c: e.channel, cid: e.cid })))}`,
+        `. Recent entries: ${JSON.stringify(this.entries.slice(-10).map((e) => ({ op: e.op, c: e.channel, cid: e.cid })))}`,
     );
   }
 
@@ -149,8 +158,14 @@ export class BusLogCapture {
     timeout = 20_000,
   ): Promise<{ request: BusLogEntry; response: BusLogEntry }> {
     const request = await this.waitForEmit(requestChannel, { timeout });
-    expect(request.cid, `EMIT ${requestChannel} must carry a correlationId`).toBeTruthy();
-    const response = await this.waitForRecv(responseChannel, { cid: request.cid, timeout });
+    expect(
+      request.cid,
+      `EMIT ${requestChannel} must carry a correlationId`,
+    ).toBeTruthy();
+    const response = await this.waitForRecv(responseChannel, {
+      cid: request.cid,
+      timeout,
+    });
     return { request, response };
   }
 
@@ -167,7 +182,9 @@ export class BusLogCapture {
 export async function attachBusLog(page: Page): Promise<BusLogCapture> {
   const capture = new BusLogCapture();
   await page.addInitScript(() => {
-    (globalThis as unknown as { __XYNOLOG_BUS_LOG__?: boolean }).__XYNOLOG_BUS_LOG__ = true;
+    (
+      globalThis as unknown as { __XYNOLOG_BUS_LOG__?: boolean }
+    ).__XYNOLOG_BUS_LOG__ = true;
   });
   page.on('console', (msg) => capture.ingest(msg));
   return capture;

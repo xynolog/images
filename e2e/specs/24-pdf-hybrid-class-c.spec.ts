@@ -42,8 +42,10 @@ import { openResourceByName } from '../fixtures/discover';
 
 const CONTAINER = '.xynolog-pdf-annotation-canvas__container';
 const CANVAS = '.xynolog-pdf-annotation-canvas';
-const slot = (page: number) => `.xynolog-pdf-annotation-canvas__slot[data-page="${page}"]`;
-const stripPage = (page: number) => `button.xynolog-pdf-annotation-canvas__strip-page[data-page="${page}"]`;
+const slot = (page: number) =>
+  `.xynolog-pdf-annotation-canvas__slot[data-page="${page}"]`;
+const stripPage = (page: number) =>
+  `button.xynolog-pdf-annotation-canvas__strip-page[data-page="${page}"]`;
 
 /** Drawn on page 1 by the fixture generator; see `scripts/seed.ts`. */
 const NATIVE_PHRASE = 'genuine text layer';
@@ -53,14 +55,20 @@ async function openHybridInAnnotateMode(page: Page) {
 
   await page.getByRole('button', { name: /^mode$/i }).click();
   await page.getByRole('menuitem', { name: /^annotate$/i }).click();
-  await expect(page.locator(slot(1)).locator(CONTAINER)).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(slot(1)).locator(CONTAINER)).toBeVisible({
+    timeout: 30_000,
+  });
 }
 
 /** Highlight + Rectangle. Motivation menuitems TOGGLE and persist, so reset to
  *  None first (14's note). A page takes a drawing only while the canvas holds
  *  the document's text, so this first waits for the canvas to say it does. */
 async function armRectangleDrawing(page: Page) {
-  await expect(page.locator(CANVAS)).toHaveAttribute('data-annotate-deferred', 'false', { timeout: 60_000 });
+  await expect(page.locator(CANVAS)).toHaveAttribute(
+    'data-annotate-deferred',
+    'false',
+    { timeout: 60_000 },
+  );
 
   await page.getByRole('button', { name: /^motivation$/i }).click();
   await page.getByRole('menuitem', { name: /^none$/i }).click();
@@ -68,11 +76,18 @@ async function armRectangleDrawing(page: Page) {
   await page.getByRole('menuitem', { name: /^highlight$/i }).click();
   await page.getByRole('button', { name: /^shape$/i }).click();
   await page.getByRole('menuitem', { name: /^rectangle$/i }).click();
-  await expect(page.locator(slot(1)).locator(CONTAINER)).toHaveAttribute('data-drawing-mode', 'rectangle', { timeout: 5_000 });
+  await expect(page.locator(slot(1)).locator(CONTAINER)).toHaveAttribute(
+    'data-drawing-mode',
+    'rectangle',
+    { timeout: 5_000 },
+  );
 }
 
 test.describe('a hybrid PDF (typed page + scanned page)', () => {
-  test('both pages survive ingest, and the typed page is annotatable', async ({ signedInPage: page, bus }) => {
+  test('both pages survive ingest, and the typed page is annotatable', async ({
+    signedInPage: page,
+    bus,
+  }) => {
     test.setTimeout(120_000);
 
     await openHybridInAnnotateMode(page);
@@ -82,9 +97,13 @@ test.describe('a hybrid PDF (typed page + scanned page)', () => {
     // asks about the document rather than about virtualization.
     await expect(page.locator(slot(1))).toHaveCount(1, { timeout: 15_000 });
     await expect(page.locator(slot(2))).toHaveCount(1);
-    await expect(page.locator('.xynolog-pdf-annotation-canvas__slot')).toHaveCount(2);
+    await expect(
+      page.locator('.xynolog-pdf-annotation-canvas__slot'),
+    ).toHaveCount(2);
 
-    const img = page.locator(`${slot(1)} .xynolog-pdf-annotation-canvas__image`);
+    const img = page.locator(
+      `${slot(1)} .xynolog-pdf-annotation-canvas__image`,
+    );
     await expect(img).toBeVisible({ timeout: 30_000 });
 
     await armRectangleDrawing(page);
@@ -98,25 +117,38 @@ test.describe('a hybrid PDF (typed page + scanned page)', () => {
     const scale = box.height / 792;
     await page.mouse.move(box.x + 60 * scale, box.y + 60 * scale);
     await page.mouse.down();
-    await page.mouse.move(box.x + 540 * scale, box.y + 170 * scale, { steps: 10 });
+    await page.mouse.move(box.x + 540 * scale, box.y + 170 * scale, {
+      steps: 10,
+    });
     await page.mouse.up();
 
-    await bus.expectRequestResponse('mark:create-request', 'mark:create-ok', 30_000);
+    await bus.expectRequestResponse(
+      'mark:create-request',
+      'mark:create-ok',
+      30_000,
+    );
 
     // The payoff, and the class-C-specific part: the quote comes from the NATIVE
     // text layer of a document that also holds OCR'd content. If appending had
     // shifted native offsets, this quote would be wrong or empty even though the
     // rectangle is in the right place.
-    await expect(page.locator('.xynolog-unified-panel')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('.xynolog-unified-panel')).toBeVisible({
+      timeout: 10_000,
+    });
     await expect
       .poll(
-        async () => (await page.locator('.xynolog-unified-panel').innerText()).toLowerCase(),
+        async () =>
+          (
+            await page.locator('.xynolog-unified-panel').innerText()
+          ).toLowerCase(),
         { timeout: 30_000 },
       )
       .toContain(NATIVE_PHRASE);
   });
 
-  test('the scanned page is reachable and carries no invented annotations', async ({ signedInPage: page }) => {
+  test('the scanned page is reachable and carries no invented annotations', async ({
+    signedInPage: page,
+  }) => {
     test.setTimeout(120_000);
 
     await openHybridInAnnotateMode(page);
@@ -127,7 +159,9 @@ test.describe('a hybrid PDF (typed page + scanned page)', () => {
     // which is what mounts its raster under virtualization.
     await page.locator(stripPage(2)).click();
 
-    const img2 = page.locator(`${slot(2)} .xynolog-pdf-annotation-canvas__image`);
+    const img2 = page.locator(
+      `${slot(2)} .xynolog-pdf-annotation-canvas__image`,
+    );
     await expect(img2).toBeVisible({ timeout: 30_000 });
 
     // And nothing was fabricated from it. The recognizer read this page and
@@ -135,6 +169,8 @@ test.describe('a hybrid PDF (typed page + scanned page)', () => {
     // "reported, not invented" contract `unreadPages` exists to keep. Asserted
     // as an absence that has had its chance to appear: the raster above is
     // already on screen, so an overlay would have rendered by now.
-    await expect(page.locator(`${slot(2)} .xynolog-pdf-annotation-canvas__svg rect`)).toHaveCount(0);
+    await expect(
+      page.locator(`${slot(2)} .xynolog-pdf-annotation-canvas__svg rect`),
+    ).toHaveCount(0);
   });
 });

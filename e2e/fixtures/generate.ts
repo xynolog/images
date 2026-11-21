@@ -12,9 +12,14 @@ import { openResourceByName } from './discover';
 export const GENERATE_SOURCE = 'Photosynthesis Overview';
 
 /** Open the seed and drive its Generate modal to the configure step. */
-export async function openConfigureStep(page: Page, bus: BusLogCapture): Promise<Locator> {
+export async function openConfigureStep(
+  page: Page,
+  bus: BusLogCapture,
+): Promise<Locator> {
   await openResourceByName(page, GENERATE_SOURCE);
-  await expect(page.getByText(/loading resource/i)).toBeHidden({ timeout: 30_000 });
+  await expect(page.getByText(/loading resource/i)).toBeHidden({
+    timeout: 30_000,
+  });
 
   await page.locator('button[data-panel="info"]').click();
   const infoPanel = page.locator('.xynolog-resource-info-panel');
@@ -28,29 +33,54 @@ export async function openConfigureStep(page: Page, bus: BusLogCapture): Promise
 
   bus.clear();
   await modal.getByRole('button', { name: /gather/i }).click();
-  await bus.expectRequestResponse('gather:resource-requested', 'gather:resource-complete', 60_000);
+  await bus.expectRequestResponse(
+    'gather:resource-requested',
+    'gather:resource-complete',
+    60_000,
+  );
 
   // ConfigureGenerationStep mounts only under `gatherFired && gatherContext`.
-  await expect(modal.locator('#wizard-title')).toBeAttached({ timeout: 30_000 });
+  await expect(modal.locator('#wizard-title')).toBeAttached({
+    timeout: 30_000,
+  });
   return modal;
 }
 
 /** Submit and wait out the generation, failing loudly on `job:fail`. */
-export async function runGeneration(modal: Locator, bus: BusLogCapture, timeout: number): Promise<void> {
+export async function runGeneration(
+  modal: Locator,
+  bus: BusLogCapture,
+  timeout: number,
+): Promise<void> {
   bus.clear();
-  await modal.getByRole('button', { name: /generate/i }).last().click();
+  await modal
+    .getByRole('button', { name: /generate/i })
+    .last()
+    .click();
 
-  const { request } = await bus.expectRequestResponse('job:create', 'job:created', 30_000);
-  expect(request.cid, 'generation job:create must carry a correlationId').toBeTruthy();
+  const { request } = await bus.expectRequestResponse(
+    'job:create',
+    'job:created',
+    30_000,
+  );
+  expect(
+    request.cid,
+    'generation job:create must carry a correlationId',
+  ).toBeTruthy();
 
   const outcome = await Promise.race([
-    bus.waitForRecv('job:complete', { timeout }).then(() => 'complete' as const),
+    bus
+      .waitForRecv('job:complete', { timeout })
+      .then(() => 'complete' as const),
     bus.waitForRecv('job:fail', { timeout }).then(() => 'fail' as const),
   ]);
   if (outcome === 'fail') {
     throw new Error(
       'Expected job:complete, got job:fail. Recent bus entries:\n' +
-        bus.entries.slice(-15).map((e) => `  [${e.op}] ${e.channel} ${e.raw}`).join('\n'),
+        bus.entries
+          .slice(-15)
+          .map((e) => `  [${e.op}] ${e.channel} ${e.raw}`)
+          .join('\n'),
     );
   }
 }

@@ -20,5 +20,10 @@ import type { OpenedSession } from '@xynolog/sdk';
  * alive, and closes the client's stream.
  */
 export async function signInSession(id = 'e2e'): Promise<OpenedSession> {
-  return sessionFor({ baseUrl: GATEWAY_URL, email: E2E_EMAIL, password: E2E_PASSWORD, id });
+  return sessionFor({
+    baseUrl: GATEWAY_URL,
+    email: E2E_EMAIL,
+    password: E2E_PASSWORD,
+    id,
+  });
 }

@@ -39,8 +39,10 @@ const IMG = '.xynolog-pdf-annotation-canvas__image';
 const SVG = '.xynolog-pdf-annotation-canvas__svg';
 const CONTAINER = '.xynolog-pdf-annotation-canvas__container';
 const CANVAS = '.xynolog-pdf-annotation-canvas';
-const TEXT_UNREADABLE = '.xynolog-anchored-text-notice[data-anchored-text="never"]';
-const TEXT_AWAITED = '.xynolog-anchored-text-notice[data-anchored-text="waiting"]';
+const TEXT_UNREADABLE =
+  '.xynolog-anchored-text-notice[data-anchored-text="never"]';
+const TEXT_AWAITED =
+  '.xynolog-anchored-text-notice[data-anchored-text="waiting"]';
 
 async function openScannedInAnnotateMode(page: Page) {
   await openResourceByName(page, 'Scanned Smoke PDF');
@@ -60,7 +62,9 @@ async function chooseHighlightAndRectangle(page: Page) {
   await page.getByRole('menuitem', { name: /^rectangle$/i }).click();
   // The toolbar holds the choice: what keeps the page from drawing below is
   // the gate, not a tool that was never chosen.
-  await expect(page.getByRole('button', { name: /^motivation$/i })).toContainText(/highlight/i);
+  await expect(
+    page.getByRole('button', { name: /^motivation$/i }),
+  ).toContainText(/highlight/i);
 }
 
 test.describe('annotate on a PDF the Smelter declined', () => {
@@ -73,12 +77,17 @@ test.describe('annotate on a PDF the Smelter declined', () => {
     await openScannedInAnnotateMode(page);
 
     // The decline arrived, and the canvas says so.
-    await expect(page.locator(TEXT_UNREADABLE)).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator(TEXT_UNREADABLE)).toBeVisible({
+      timeout: 60_000,
+    });
     await expect(
       page.locator(TEXT_AWAITED),
       'a decline ends the asking: the canvas is not still waiting for the text',
     ).toHaveCount(0);
-    await expect(page.locator(CANVAS)).toHaveAttribute('data-annotate-deferred', 'true');
+    await expect(page.locator(CANVAS)).toHaveAttribute(
+      'data-annotate-deferred',
+      'true',
+    );
 
     const rectsBefore = await page.locator(`${SVG} rect`).count();
 
@@ -94,7 +103,9 @@ test.describe('annotate on a PDF the Smelter declined', () => {
     if (!box) throw new Error('PDF image has no bounding box');
     await page.mouse.move(box.x + box.width * 0.25, box.y + box.height * 0.25);
     await page.mouse.down();
-    await page.mouse.move(box.x + box.width * 0.60, box.y + box.height * 0.60, { steps: 10 });
+    await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.6, {
+      steps: 10,
+    });
 
     // Mid-drag, a canvas that was drawing shows the rectangle's dashed outline.
     expect(
@@ -106,12 +117,20 @@ test.describe('annotate on a PDF the Smelter declined', () => {
 
     // Nothing is made: no rectangle appears, and the server is asked for none.
     await expect
-      .poll(async () => page.locator(`${SVG} rect`).count(), { timeout: 10_000 })
+      .poll(async () => page.locator(`${SVG} rect`).count(), {
+        timeout: 10_000,
+      })
       .toBe(rectsBefore);
-    expect(bus.emits('mark:create-request'), 'the drag asked for no annotation').toHaveLength(0);
+    expect(
+      bus.emits('mark:create-request'),
+      'the drag asked for no annotation',
+    ).toHaveLength(0);
 
     // And the gate has not moved: a decline is not asked about again.
-    await expect(page.locator(CANVAS)).toHaveAttribute('data-annotate-deferred', 'true');
+    await expect(page.locator(CANVAS)).toHaveAttribute(
+      'data-annotate-deferred',
+      'true',
+    );
     await expect(page.locator(TEXT_UNREADABLE)).toBeVisible();
   });
 });

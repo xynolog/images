@@ -100,18 +100,17 @@ const BODY = [
 /** The Smelter chunks and embeds asynchronously; nothing is searchable until it has. */
 const INDEXING_TIMEOUT = 120_000;
 
-
-
 /** Search by body phrase — zero lexical hits by construction, so this is the fallback's answer. */
 async function semanticSearch(
   client: XynologClient,
 ): Promise<Array<ResourceDescriptor & { content?: string }>> {
-  return (await client.match
-    .resources(BODY_QUERY)
-    .fresh()).resources as Array<ResourceDescriptor & { content?: string }>;
+  return (await client.match.resources(BODY_QUERY).fresh()).resources as Array<
+    ResourceDescriptor & { content?: string }
+  >;
 }
 
-test.describe.serial('semantic fallback answers what lexical search cannot', () => {
+test.describe
+  .serial('semantic fallback answers what lexical search cannot', () => {
   let opened: Awaited<ReturnType<typeof signInSession>>;
   let client: XynologClient;
   let rid: ReturnType<typeof ridBrand>;
@@ -131,7 +130,9 @@ test.describe.serial('semantic fallback answers what lexical search cannot', () 
       ).resourceId,
     );
     // eslint-disable-next-line no-console
-    console.log(`SEMANTIC: seeded ${rid} as "${RESOURCE_NAME}" (${BODY.length} bytes)`);
+    console.log(
+      `SEMANTIC: seeded ${rid} as "${RESOURCE_NAME}" (${BODY.length} bytes)`,
+    );
   });
 
   test.afterAll(async () => {
@@ -150,7 +151,9 @@ test.describe.serial('semantic fallback answers what lexical search cannot', () 
     await expect
       .poll(
         async () =>
-          (await client.match.resources(RESOURCE_NAME).fresh()).resources.some((r) => r['@id'] === rid),
+          (await client.match.resources(RESOURCE_NAME).fresh()).resources.some(
+            (r) => r['@id'] === rid,
+          ),
         {
           timeout: INDEXING_TIMEOUT,
           message:
@@ -178,12 +181,16 @@ test.describe.serial('semantic fallback answers what lexical search cannot', () 
     // The rule: a poll predicate must be the SAME condition as
     // the assertion it is waiting for, or it is waiting for the wrong thing.
     await expect
-      .poll(async () => (await semanticSearch(client)).some((r) => r['@id'] === rid), {
-        timeout: INDEXING_TIMEOUT,
-        message:
-          'a phrase present only in the BODY must retrieve the resource; lexical search ' +
-          'never reads the body, so nothing but the semantic fallback could produce this hit',
-      })
+      .poll(
+        async () =>
+          (await semanticSearch(client)).some((r) => r['@id'] === rid),
+        {
+          timeout: INDEXING_TIMEOUT,
+          message:
+            'a phrase present only in the BODY must retrieve the resource; lexical search ' +
+            'never reads the body, so nothing but the semantic fallback could produce this hit',
+        },
+      )
       .toBe(true);
 
     const hits = await semanticSearch(client);
@@ -201,7 +208,10 @@ test.describe.serial('semantic fallback answers what lexical search cannot', () 
     expect(hit, 'the seeded resource is among the semantic hits').toBeDefined();
 
     const content = hit?.content;
-    expect(content, 'a semantic hit carries the passage that matched').toBeTruthy();
+    expect(
+      content,
+      'a semantic hit carries the passage that matched',
+    ).toBeTruthy();
 
     expect(
       content,
@@ -223,7 +233,9 @@ test.describe.serial('semantic fallback answers what lexical search cannot', () 
    */
   test('the answer is labelled by how it was produced', async () => {
     await expect
-      .poll(async () => (await semanticSearch(client)).length, { timeout: INDEXING_TIMEOUT })
+      .poll(async () => (await semanticSearch(client)).length, {
+        timeout: INDEXING_TIMEOUT,
+      })
       .toBeGreaterThan(0);
 
     const semantic = await client.match.resources(BODY_QUERY).fresh();

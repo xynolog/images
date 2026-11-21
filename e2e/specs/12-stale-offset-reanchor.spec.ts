@@ -71,11 +71,15 @@ test.beforeAll(async () => {
 });
 
 test.describe('stale-offset re-anchor', () => {
-  test('renderer anchors a highlight to the verbatim quote, not the stale offset', async ({ signedInPage: page }) => {
+  test('renderer anchors a highlight to the verbatim quote, not the stale offset', async ({
+    signedInPage: page,
+  }) => {
     expect(resourceId).not.toBe('');
 
     await page.goto(`/en/know/resource/${encodeURIComponent(resourceId)}`);
-    await expect(page.getByText(/loading resource/i)).toBeHidden({ timeout: 30_000 });
+    await expect(page.getByText(/loading resource/i)).toBeHidden({
+      timeout: 30_000,
+    });
 
     // Switch to annotate mode (CodeMirror) — that's the render path the
     // anchoring + decoration changes live in.
@@ -89,7 +93,9 @@ test.describe('stale-offset re-anchor', () => {
     // Its rendered text must be the verbatim quote (re-anchored), not the
     // stale-offset slice. CodeMirror may split a decoration across spans;
     // join their text and assert it equals the quote.
-    const highlightSpans = cmContent.locator('[data-annotation-type="highlight"]');
+    const highlightSpans = cmContent.locator(
+      '[data-annotation-type="highlight"]',
+    );
     await expect(highlightSpans.first()).toBeVisible({ timeout: 15_000 });
 
     const highlightedText = (await highlightSpans.allInnerTexts()).join('');

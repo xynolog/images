@@ -52,7 +52,10 @@ import { expectGeneratedAt } from '../fixtures/generated';
  *   - A working inference provider configured for `yield` jobs.
  */
 test.describe('generate from unresolved reference', () => {
-  test('clicking generate on an unresolved reference produces a job:complete with a new resourceId', async ({ signedInPage: page, bus }) => {
+  test('clicking generate on an unresolved reference produces a job:complete with a new resourceId', async ({
+    signedInPage: page,
+    bus,
+  }) => {
     test.setTimeout(120_000);
 
     // ── Find a resource that has at least one unresolved reference ──
@@ -85,9 +88,14 @@ test.describe('generate from unresolved reference', () => {
       // Both candidates are text seeds, so CodeMirror is expected — but probe
       // rather than assert, so a seed changing media type degrades to "try the
       // next candidate" instead of failing in a way that reads as a product bug.
-      const mounted = await page.locator('.cm-content').first()
+      const mounted = await page
+        .locator('.cm-content')
+        .first()
         .waitFor({ state: 'visible', timeout: 8_000 })
-        .then(() => true, () => false);
+        .then(
+          () => true,
+          () => false,
+        );
       if (!mounted) continue;
 
       // Switch right sidebar to Annotations → References.
@@ -95,11 +103,16 @@ test.describe('generate from unresolved reference', () => {
       // the Annotations button may already be pressed from a previous
       // iteration. Toggling it unconditionally would close the panel
       // and hide the 🔵 References tab. Only click if not pressed.
-      const annotationsBtn = page.getByRole('button', { name: /^annotations$/i });
+      const annotationsBtn = page.getByRole('button', {
+        name: /^annotations$/i,
+      });
       if ((await annotationsBtn.getAttribute('aria-pressed')) !== 'true') {
         await annotationsBtn.click();
       }
-      const referencesTab = page.getByRole('button', { name: '🔵', exact: true });
+      const referencesTab = page.getByRole('button', {
+        name: '🔵',
+        exact: true,
+      });
       await expect(referencesTab).toBeVisible({ timeout: 10_000 });
       if ((await referencesTab.getAttribute('aria-pressed')) !== 'true') {
         await referencesTab.click();
@@ -108,7 +121,8 @@ test.describe('generate from unresolved reference', () => {
       // Resolved references render 🔗 (clickable to open the target);
       // unresolved render ❓ (clickable in annotate mode to open the
       // wizard).
-      const candidate = page.getByRole('main')
+      const candidate = page
+        .getByRole('main')
         .locator('button.xynolog-reference-icon')
         .filter({ hasText: '❓' })
         .first();
@@ -128,8 +142,8 @@ test.describe('generate from unresolved reference', () => {
     expect(
       unresolvedFound,
       `no unresolved reference found on any of: ${CANDIDATES.join(', ')}. ` +
-      'These seeds get their ❓ from specs 05 (manual) and 06 (delegated), which run ' +
-      'earlier in the suite — if those failed or were filtered out, this will fail too.',
+        'These seeds get their ❓ from specs 05 (manual) and 06 (delegated), which run ' +
+        'earlier in the suite — if those failed or were filtered out, this will fail too.',
     ).toBe(true);
 
     // ── Wizard opens at the gather step; click Generate ────────────────
@@ -180,12 +194,19 @@ test.describe('generate from unresolved reference', () => {
     await storagePathInput.fill(storagePath);
 
     // Submit. The button label is "✨ Generate" on this step.
-    await wizard.getByRole('button', { name: /generate/i }).last().click();
+    await wizard
+      .getByRole('button', { name: /generate/i })
+      .last()
+      .click();
 
     // ── Protocol assertions ─────────────────────────────────────────────
     //
     // Dispatch: `job:create` was emitted and the gateway acked.
-    const { request: createReq } = await bus.expectRequestResponse('job:create', 'job:created', 30_000);
+    const { request: createReq } = await bus.expectRequestResponse(
+      'job:create',
+      'job:created',
+      30_000,
+    );
     expect(createReq.cid, 'job:create must carry a correlationId').toBeTruthy();
 
     // Completion: `job:complete` (not `job:fail`) arrives within the
@@ -193,8 +214,12 @@ test.describe('generate from unresolved reference', () => {
     // the actual error message rather than as a generic "timeout
     // waiting for job:complete".
     const completeOrFail = await Promise.race([
-      bus.waitForRecv('job:complete', { timeout: 90_000 }).then((e) => ({ kind: 'complete' as const, entry: e })),
-      bus.waitForRecv('job:fail', { timeout: 90_000 }).then((e) => ({ kind: 'fail' as const, entry: e })),
+      bus
+        .waitForRecv('job:complete', { timeout: 90_000 })
+        .then((e) => ({ kind: 'complete' as const, entry: e })),
+      bus
+        .waitForRecv('job:fail', { timeout: 90_000 })
+        .then((e) => ({ kind: 'fail' as const, entry: e })),
     ]);
 
     if (completeOrFail.kind === 'fail') {
@@ -205,7 +230,10 @@ test.describe('generate from unresolved reference', () => {
       // both the wire-level and span-level view of the failure.
       throw new Error(
         `Expected job:complete, got job:fail. Recent bus entries:\n` +
-        bus.entries.slice(-15).map((e) => `  [${e.op}] ${e.channel} ${e.raw}`).join('\n'),
+          bus.entries
+            .slice(-15)
+            .map((e) => `  [${e.op}] ${e.channel} ${e.raw}`)
+            .join('\n'),
       );
     }
 
@@ -226,10 +254,14 @@ test.describe('generate from unresolved reference', () => {
     // body-update is delayed past the timeout, don't fail the test —
     // surface a console warning instead so a Stower-side projection
     // bug shows up in test logs without flaking this test.
-    const bodyUpdated = await bus.waitForRecv('mark:body-updated', { timeout: 10_000 }).catch(() => null);
+    const bodyUpdated = await bus
+      .waitForRecv('mark:body-updated', { timeout: 10_000 })
+      .catch(() => null);
     if (!bodyUpdated) {
       // eslint-disable-next-line no-console
-      console.warn('[spec 09] job:complete arrived but mark:body-updated did not — possible Stower projection bug');
+      console.warn(
+        '[spec 09] job:complete arrived but mark:body-updated did not — possible Stower projection bug',
+      );
     }
 
     // ── The artifact is where the form said ────────────────────────────────

@@ -62,7 +62,11 @@ async function armRectangleDrawing(page: Page) {
   // A page takes a drawing only while the canvas holds the document's text.
   // The server may hold the ask for it while the Smelter reads the document,
   // so this waits for the canvas to say it holds it.
-  await expect(page.locator(CANVAS)).toHaveAttribute('data-annotate-deferred', 'false', { timeout: 60_000 });
+  await expect(page.locator(CANVAS)).toHaveAttribute(
+    'data-annotate-deferred',
+    'false',
+    { timeout: 60_000 },
+  );
 
   await page.getByRole('button', { name: /^motivation$/i }).click();
   await page.getByRole('menuitem', { name: /^none$/i }).click();
@@ -72,11 +76,18 @@ async function armRectangleDrawing(page: Page) {
   await page.getByRole('menuitem', { name: /^rectangle$/i }).click();
 
   // Both selected → drawing is armed. The container reflects this.
-  await expect(page.locator(CONTAINER)).toHaveAttribute('data-drawing-mode', 'rectangle', { timeout: 5_000 });
+  await expect(page.locator(CONTAINER)).toHaveAttribute(
+    'data-drawing-mode',
+    'rectangle',
+    { timeout: 5_000 },
+  );
 }
 
 test.describe('pdf render + spatial highlight', () => {
-  test('a PDF renders non-blank and a manual rectangle highlight persists across reload', async ({ signedInPage: page, bus }) => {
+  test('a PDF renders non-blank and a manual rectangle highlight persists across reload', async ({
+    signedInPage: page,
+    bus,
+  }) => {
     test.setTimeout(120_000);
 
     await openPdfInAnnotateMode(page);
@@ -86,12 +97,14 @@ test.describe('pdf render + spatial highlight', () => {
     // aren't all identical (a blank/failed render would be uniform white).
     const render = await page.locator(IMG).evaluate((el) => {
       const img = el as HTMLImageElement;
-      if (!img.complete || img.naturalWidth === 0) return { ok: false, reason: 'img not loaded', varied: false, src: '' };
+      if (!img.complete || img.naturalWidth === 0)
+        return { ok: false, reason: 'img not loaded', varied: false, src: '' };
       const c = document.createElement('canvas');
       c.width = img.naturalWidth;
       c.height = img.naturalHeight;
       const ctx = c.getContext('2d');
-      if (!ctx) return { ok: false, reason: 'no 2d context', varied: false, src: '' };
+      if (!ctx)
+        return { ok: false, reason: 'no 2d context', varied: false, src: '' };
       ctx.drawImage(img, 0, 0);
       const { data } = ctx.getImageData(0, 0, c.width, c.height);
       let first: string | null = null;
@@ -99,13 +112,19 @@ test.describe('pdf render + spatial highlight', () => {
       for (let i = 0; i < data.length; i += 4 * 101) {
         const px = `${data[i]},${data[i + 1]},${data[i + 2]}`;
         if (first === null) first = px;
-        else if (px !== first) { varied = true; break; }
+        else if (px !== first) {
+          varied = true;
+          break;
+        }
       }
       return { ok: true, reason: '', varied, src: img.src.slice(0, 16) };
     });
     expect(render.ok, render.reason).toBeTruthy();
     expect(render.src).toContain('data:image');
-    expect(render.varied, 'PDF page rendered blank (all sampled pixels identical)').toBeTruthy();
+    expect(
+      render.varied,
+      'PDF page rendered blank (all sampled pixels identical)',
+    ).toBeTruthy();
 
     await armRectangleDrawing(page);
 
@@ -116,30 +135,42 @@ test.describe('pdf render + spatial highlight', () => {
     if (!box) throw new Error('PDF image has no bounding box');
     await page.mouse.move(box.x + box.width * 0.25, box.y + box.height * 0.25);
     await page.mouse.down();
-    await page.mouse.move(box.x + box.width * 0.60, box.y + box.height * 0.60, { steps: 10 });
+    await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.6, {
+      steps: 10,
+    });
     await page.mouse.up();
 
     // ── Protocol proof: the highlight create round-trips (same chain as
     // text 04 — mark.request → pendingAnnotation auto-submits for
     // 'highlighting' → mark:create-request → mark:create-ok). ──
-    await bus.expectRequestResponse('mark:create-request', 'mark:create-ok', 30_000);
+    await bus.expectRequestResponse(
+      'mark:create-request',
+      'mark:create-ok',
+      30_000,
+    );
 
     // ── UI proof: the annotation renders as an SVG <rect> in the overlay. ──
     await expect
-      .poll(async () => page.locator(`${SVG} rect`).count(), { timeout: 30_000 })
+      .poll(async () => page.locator(`${SVG} rect`).count(), {
+        timeout: 30_000,
+      })
       .toBeGreaterThan(0);
 
     // ── Persistence: reload, re-open in annotate mode, the rect survives. ──
     const url = page.url();
     await page.reload();
     await expect(page).toHaveURL(url);
-    await expect(page.getByText(/loading resource/i)).toBeHidden({ timeout: 30_000 });
+    await expect(page.getByText(/loading resource/i)).toBeHidden({
+      timeout: 30_000,
+    });
     await page.getByRole('button', { name: /^mode$/i }).click();
     await page.getByRole('menuitem', { name: /^annotate$/i }).click();
     await expect(page.locator(IMG)).toBeVisible({ timeout: 30_000 });
     await expect(page.locator(SVG)).toBeVisible({ timeout: 15_000 });
     await expect
-      .poll(async () => page.locator(`${SVG} rect`).count(), { timeout: 30_000 })
+      .poll(async () => page.locator(`${SVG} rect`).count(), {
+        timeout: 30_000,
+      })
       .toBeGreaterThan(0);
   });
 
@@ -155,7 +186,10 @@ test.describe('pdf render + spatial highlight', () => {
    * Test PDF" on a 300×200 page) is certainly underneath it — this asserts the
    * quote is captured, not where the text sits.
    */
-  test('a manual rectangle captures the text underneath it', async ({ signedInPage: page, bus }) => {
+  test('a manual rectangle captures the text underneath it', async ({
+    signedInPage: page,
+    bus,
+  }) => {
     test.setTimeout(120_000);
 
     await openPdfInAnnotateMode(page);
@@ -167,12 +201,18 @@ test.describe('pdf render + spatial highlight', () => {
     if (!box) throw new Error('PDF image has no bounding box');
     await page.mouse.move(box.x + box.width * 0.05, box.y + box.height * 0.05);
     await page.mouse.down();
-    await page.mouse.move(box.x + box.width * 0.95, box.y + box.height * 0.95, { steps: 10 });
+    await page.mouse.move(box.x + box.width * 0.95, box.y + box.height * 0.95, {
+      steps: 10,
+    });
     await page.mouse.up();
 
     // Same create chain as above — asserted first so a failure here reads as
     // "didn't persist" rather than "persisted without text".
-    await bus.expectRequestResponse('mark:create-request', 'mark:create-ok', 30_000);
+    await bus.expectRequestResponse(
+      'mark:create-request',
+      'mark:create-ok',
+      30_000,
+    );
 
     // The payoff: the panel entry quotes the page text, instead of being an
     // anonymous rectangle.
@@ -183,10 +223,16 @@ test.describe('pdf render + spatial highlight', () => {
     // annotation itself is fine in that failure (`mark:create-ok` above has
     // already passed, and the stored quote is correct); only the surface it
     // is read from is gone. Spec 23 carries the same note.
-    await expect(page.locator('.xynolog-unified-panel')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('.xynolog-unified-panel')).toBeVisible({
+      timeout: 10_000,
+    });
     await expect
       .poll(
-        async () => page.locator('[data-type="highlight"]').filter({ hasText: /smoke test pdf/i }).count(),
+        async () =>
+          page
+            .locator('[data-type="highlight"]')
+            .filter({ hasText: /smoke test pdf/i })
+            .count(),
         { timeout: 30_000 },
       )
       .toBeGreaterThan(0);

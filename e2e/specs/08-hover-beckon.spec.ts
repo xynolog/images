@@ -25,7 +25,10 @@ import { openResourceByName } from '../fixtures/discover';
  * intermittently — a real cross-session flake, not load-related.
  */
 test.describe('hover → beckon', () => {
-  test('hovering an annotation fires beckon:hover and BeckonStateUnit fires beckon:sparkle', async ({ signedInPage: page, bus }) => {
+  test('hovering an annotation fires beckon:hover and BeckonStateUnit fires beckon:sparkle', async ({
+    signedInPage: page,
+    bus,
+  }) => {
     // Open a TEXT resource, pinned BY NAME. Discover's first card is
     // data-order-dependent and a source of cross-session flakes:
     // Discover is newest-first, the seed adds PDFs, and specs 09/16
@@ -42,9 +45,13 @@ test.describe('hover → beckon', () => {
     // bearing — `[data-annotation-id]` also appears in the references
     // panel, but only BrowseView has the mouseover handler bound that
     // fires `beckon:hover`.
-    const annLocator = page.locator('.xynolog-browse-view [data-annotation-id]').first();
+    const annLocator = page
+      .locator('.xynolog-browse-view [data-annotation-id]')
+      .first();
 
-    const alreadyHas = await annLocator.isVisible({ timeout: 2_000 }).catch(() => false);
+    const alreadyHas = await annLocator
+      .isVisible({ timeout: 2_000 })
+      .catch(() => false);
 
     if (!alreadyHas) {
       // ── Self-setup: create a highlight on this resource ────────────
@@ -69,7 +76,9 @@ test.describe('hover → beckon', () => {
       await page.getByRole('button', { name: /^motivation$/i }).click();
       await page.getByRole('menuitem', { name: /^highlight$/i }).click();
       await expect(
-        page.getByRole('button', { name: /^motivation$/i }).filter({ hasText: /highlight/i })
+        page
+          .getByRole('button', { name: /^motivation$/i })
+          .filter({ hasText: /highlight/i }),
       ).toBeVisible({ timeout: 5_000 });
 
       // Select a small slice of text in CodeMirror's content area. The
@@ -105,10 +114,16 @@ test.describe('hover → beckon', () => {
           fullText += node.nodeValue ?? '';
         }
         const breakIdx = fullText.indexOf('\n\n');
-        const targetStart = breakIdx >= 0 ? breakIdx + 2 : Math.floor(fullText.length / 2);
-        const targetLen = Math.min(10, Math.max(2, fullText.length - targetStart - 1));
+        const targetStart =
+          breakIdx >= 0 ? breakIdx + 2 : Math.floor(fullText.length / 2);
+        const targetLen = Math.min(
+          10,
+          Math.max(2, fullText.length - targetStart - 1),
+        );
         if (targetLen < 2) {
-          throw new Error(`content too short to select past header: len=${fullText.length}, start=${targetStart}`);
+          throw new Error(
+            `content too short to select past header: len=${fullText.length}, start=${targetStart}`,
+          );
         }
 
         let running = 0;
@@ -124,12 +139,13 @@ test.describe('hover → beckon', () => {
           }
           if (startNode && running + len >= targetStart + targetLen) {
             endNode = node;
-            endOff = (targetStart + targetLen) - running;
+            endOff = targetStart + targetLen - running;
             break;
           }
           running += len;
         }
-        if (!startNode || !endNode) throw new Error('selection boundary resolution failed');
+        if (!startNode || !endNode)
+          throw new Error('selection boundary resolution failed');
         const range = document.createRange();
         range.setStart(startNode, startOff);
         range.setEnd(endNode, endOff);
@@ -141,7 +157,11 @@ test.describe('hover → beckon', () => {
       });
 
       // Wait for the create round-trip to land — annotation persisted.
-      await bus.expectRequestResponse('mark:create-request', 'mark:create-ok', 30_000);
+      await bus.expectRequestResponse(
+        'mark:create-request',
+        'mark:create-ok',
+        30_000,
+      );
 
       // Switch back to browse mode. The toolbar persists the mode to
       // localStorage, so a plain reload would come back up in annotate

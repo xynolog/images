@@ -47,8 +47,15 @@ test.describe('frame entity-type vocabulary', () => {
     // The 9 defaults: the Archivist's DEFAULT_ENTITY_TYPES (archivist/src/main.rs).
     // If the bootstrap hadn't fired, none of these would render.
     const DEFAULT_ENTITY_TYPES = [
-      'Person', 'Organization', 'Location', 'Event', 'Concept',
-      'Product', 'Technology', 'Date', 'Author',
+      'Person',
+      'Organization',
+      'Location',
+      'Event',
+      'Concept',
+      'Product',
+      'Technology',
+      'Date',
+      'Author',
     ];
     const tagList = page.locator('.xynolog-tags');
     await expect(tagList).toBeVisible({ timeout: 15_000 });

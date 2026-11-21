@@ -38,19 +38,46 @@
  */
 export function buildLargeDocument(targetBytes: number): string {
   const concepts = [
-    'adaptive caching', 'hierarchical scheduling', 'incremental replication',
-    'speculative prefetching', 'distributed consensus', 'probabilistic indexing',
-    'asynchronous checkpointing', 'lock-free batching', 'append-only compaction',
-    'copy-on-write partitioning', 'write-ahead logging', 'content-addressed storage',
-    'log-structured merging', 'columnar compression', 'vectorized execution',
-    'just-in-time compilation', 'generational collection', 'reference counting',
-    'transactional memory', 'idempotent retry', 'quorum replication', 'gossip dissemination',
-    'leaderless coordination', 'load shedding', 'admission control', 'change data capture',
-    'query planning', 'cache invalidation', 'connection pooling', 'backpressure propagation',
+    'adaptive caching',
+    'hierarchical scheduling',
+    'incremental replication',
+    'speculative prefetching',
+    'distributed consensus',
+    'probabilistic indexing',
+    'asynchronous checkpointing',
+    'lock-free batching',
+    'append-only compaction',
+    'copy-on-write partitioning',
+    'write-ahead logging',
+    'content-addressed storage',
+    'log-structured merging',
+    'columnar compression',
+    'vectorized execution',
+    'just-in-time compilation',
+    'generational collection',
+    'reference counting',
+    'transactional memory',
+    'idempotent retry',
+    'quorum replication',
+    'gossip dissemination',
+    'leaderless coordination',
+    'load shedding',
+    'admission control',
+    'change data capture',
+    'query planning',
+    'cache invalidation',
+    'connection pooling',
+    'backpressure propagation',
   ];
   const fields = [
-    'storage engines', 'stream processing', 'compiler design', 'operating systems',
-    'distributed databases', 'network protocols', 'observability tooling', 'query engines',
+    'storage engines',
+    'stream processing',
+    'compiler design',
+    'operating systems',
+    'distributed databases',
+    'network protocols',
+    'observability tooling',
+    'query engines',
   ];
 
   // What follows the concept, ending its sentence. Eleven, a length that shares no factor with
@@ -136,7 +163,8 @@ export function buildLargeDocument(targetBytes: number): string {
     'What finally clears it up is a plain description, read aloud, of what the system does today, ' +
       'which turns out to differ from what anyone believed.',
   ];
-  const nth = (sentences: readonly string[], i: number): string => sentences[i % sentences.length]!;
+  const nth = (sentences: readonly string[], i: number): string =>
+    sentences[i % sentences.length]!;
 
   const paragraphs: string[] = [];
   let i = 0;

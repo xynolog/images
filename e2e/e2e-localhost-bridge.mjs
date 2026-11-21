@@ -18,16 +18,30 @@
 import net from 'node:net';
 const HOST = process.env.E2E_HOST_BRIDGE ?? '192.168.64.1';
 if (!process.env.E2E_GATEWAY_URL) {
-  throw new Error('E2E_GATEWAY_URL names the gateway the bridge forwards: set it as for the suite');
+  throw new Error(
+    'E2E_GATEWAY_URL names the gateway the bridge forwards: set it as for the suite',
+  );
 }
 const gateway = Number(new URL(process.env.E2E_GATEWAY_URL).port);
-if (!gateway) throw new Error(`E2E_GATEWAY_URL (${process.env.E2E_GATEWAY_URL}) names no port`);
-const PORTS = { 3000: 13000, 8080: 8080, 24100: 24100, [gateway]: gateway + 10000 };
+if (!gateway)
+  throw new Error(
+    `E2E_GATEWAY_URL (${process.env.E2E_GATEWAY_URL}) names no port`,
+  );
+const PORTS = {
+  3000: 13000,
+  8080: 8080,
+  24100: 24100,
+  [gateway]: gateway + 10000,
+};
 for (const [local, remote] of Object.entries(PORTS)) {
-  net.createServer((c) => {
-    const up = net.connect(remote, HOST);
-    c.on('error', () => up.destroy());
-    up.on('error', () => c.destroy());
-    c.pipe(up).pipe(c);
-  }).listen(Number(local), '127.0.0.1', () => console.log(`[bridge] 127.0.0.1:${local} -> ${HOST}:${remote}`));
+  net
+    .createServer((c) => {
+      const up = net.connect(remote, HOST);
+      c.on('error', () => up.destroy());
+      up.on('error', () => c.destroy());
+      c.pipe(up).pipe(c);
+    })
+    .listen(Number(local), '127.0.0.1', () =>
+      console.log(`[bridge] 127.0.0.1:${local} -> ${HOST}:${remote}`),
+    );
 }

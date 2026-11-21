@@ -35,12 +35,16 @@ import { promises as fs } from 'fs';
 import type { TestInfo } from '@playwright/test';
 import type { BusLogCapture } from './bus-log';
 
-const JAEGER_QUERY_URL = process.env.JAEGER_QUERY_URL ?? 'http://192.168.64.1:16686';
+const JAEGER_QUERY_URL =
+  process.env.JAEGER_QUERY_URL ?? 'http://192.168.64.1:16686';
 
 const JAEGER_SERVICES = (
   process.env.JAEGER_SERVICES ??
   'xynolog-gateway,xynolog-worker,xynolog-smelter,xynolog-browser'
-).split(',').map((s) => s.trim()).filter(Boolean);
+)
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 type AttachMode = 'failure' | 'always' | 'off';
 const JAEGER_ATTACH: AttachMode =
@@ -99,12 +103,17 @@ async function fetchTracesForService(
 
   const response = await fetch(url.toString()).catch(() => null);
   if (!response || !response.ok) return [];
-  const body = (await response.json().catch(() => null)) as JaegerTracesResponse | null;
+  const body = (await response
+    .json()
+    .catch(() => null)) as JaegerTracesResponse | null;
   return body?.data ?? [];
 }
 
 /** Filter traces whose ID starts with any of the captured prefixes. */
-function filterByPrefix(traces: JaegerTrace[], prefixes: Set<string>): JaegerTrace[] {
+function filterByPrefix(
+  traces: JaegerTrace[],
+  prefixes: Set<string>,
+): JaegerTrace[] {
   if (prefixes.size === 0) return [];
   return traces.filter((t) => {
     const p8 = t.traceID.slice(0, 8);
@@ -165,7 +174,9 @@ async function gatherEvidence(
   for (const { traces } of matched) {
     for (const t of traces) matchedPrefixes.add(t.traceID.slice(0, 8));
   }
-  const unmatchedPrefixes = [...prefixes].filter((p) => !matchedPrefixes.has(p));
+  const unmatchedPrefixes = [...prefixes].filter(
+    (p) => !matchedPrefixes.has(p),
+  );
 
   return {
     prefixesSeen: [...prefixes],
@@ -191,7 +202,10 @@ export async function attachJaegerEvidence(
 
   const evidence = await gatherEvidence(bus, jaeger.startedAtMs);
   const endedAtMs = Date.now();
-  const matchedCount = evidence.matched.reduce((n, m) => n + m.traces.length, 0);
+  const matchedCount = evidence.matched.reduce(
+    (n, m) => n + m.traces.length,
+    0,
+  );
   const windowCount = evidence.window.reduce((n, m) => n + m.traces.length, 0);
   const summary = {
     test: testInfo.title,
@@ -216,15 +230,23 @@ export async function attachJaegerEvidence(
   // surfacing path-attached files than body-attached strings — body
   // attachments from fixture teardowns sometimes don't make it into
   // the report's attachment list.
-  await writeAttachment(testInfo, 'jaeger-summary.json', JSON.stringify(summary, null, 2));
+  await writeAttachment(
+    testInfo,
+    'jaeger-summary.json',
+    JSON.stringify(summary, null, 2),
+  );
 
   // Prefer matched (tightest correlation) when available; fall back to
   // the full time-window capture so the developer always gets a usable
   // span tree even when the browser isn't OTel-instrumented.
-  const traces = evidence.matched.length > 0 ? evidence.matched : evidence.window;
+  const traces =
+    evidence.matched.length > 0 ? evidence.matched : evidence.window;
   if (traces.length === 0) return;
 
-  const filenameStem = evidence.matched.length > 0 ? 'jaeger-matched-traces' : 'jaeger-window-traces';
+  const filenameStem =
+    evidence.matched.length > 0
+      ? 'jaeger-matched-traces'
+      : 'jaeger-window-traces';
   await writeAttachment(
     testInfo,
     `${filenameStem}.json`,
@@ -232,16 +254,24 @@ export async function attachJaegerEvidence(
   );
 
   const traceLinks = traces
-    .flatMap((m) => m.traces.map((t) => `${JAEGER_QUERY_URL}/trace/${t.traceID}`))
+    .flatMap((m) =>
+      m.traces.map((t) => `${JAEGER_QUERY_URL}/trace/${t.traceID}`),
+    )
     .join('\n');
   await writeAttachment(testInfo, 'jaeger-trace-links.txt', traceLinks);
 }
 
-async function writeAttachment(testInfo: TestInfo, name: string, body: string): Promise<void> {
+async function writeAttachment(
+  testInfo: TestInfo,
+  name: string,
+  body: string,
+): Promise<void> {
   const filePath = testInfo.outputPath(name);
   try {
     await fs.writeFile(filePath, body, 'utf8');
-    const contentType = name.endsWith('.json') ? 'application/json' : 'text/plain';
+    const contentType = name.endsWith('.json')
+      ? 'application/json'
+      : 'text/plain';
     await testInfo.attach(name, { path: filePath, contentType });
   } catch (err) {
     // Surface the failure so a missing artifact is visible without

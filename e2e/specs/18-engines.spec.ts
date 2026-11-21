@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { MARK_MOTIVATIONS, type EngineWithLimits, type JobFilter } from '@xynolog/core';
+import {
+  MARK_MOTIVATIONS,
+  type EngineWithLimits,
+  type JobFilter,
+} from '@xynolog/core';
 import { signInSession } from '../fixtures/sdk-session';
 
 /**
@@ -43,118 +47,162 @@ import { signInSession } from '../fixtures/sdk-session';
 
 /** A job as a claim names it, in words: `mark.<motivation>`, or `yield`. */
 const named = (filter: JobFilter): string =>
-  filter.jobType === 'mark' ? `mark.${filter.params.motivation}` : filter.jobType;
+  filter.jobType === 'mark'
+    ? `mark.${filter.params.motivation}`
+    : filter.jobType;
 
 /** Every job a claim can name: a `mark` job of each motivation, and a `yield` job. */
-const JOBS = [...MARK_MOTIVATIONS.map((motivation) => `mark.${motivation}`), 'yield'];
+const JOBS = [
+  ...MARK_MOTIVATIONS.map((motivation) => `mark.${motivation}`),
+  'yield',
+];
 
 /** An engine, as a key: `<provider> <model>`. */
-const engineKey = (provider: string | undefined, model: string | undefined): string => `${provider} ${model}`;
+const engineKey = (
+  provider: string | undefined,
+  model: string | undefined,
+): string => `${provider} ${model}`;
 
 test.describe('the engines (browse.engines)', () => {
-  test('each engine is listed once, and the engine a worker\'s work names is one of them', { tag: ['@model'] }, async () => {
-    test.setTimeout(120_000);
+  test(
+    "each engine is listed once, and the engine a worker's work names is one of them",
+    { tag: ['@model'] },
+    async () => {
+      test.setTimeout(120_000);
 
-    const opened = await signInSession();
+      const opened = await signInSession();
 
-    const client = opened.session.client;
+      const client = opened.session.client;
 
-    try {
-      // ── 1. Freshness gate: the channel must exist on the running stack ──
-      let entries: EngineWithLimits[];
       try {
-        // `.fresh()` is the explicit one-shot read: a CacheObservable is not awaitable.
-        entries = await client.browse.engines().fresh();
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        throw new Error(
-          `STACK FRESHNESS GATE: browse.engines() did not answer (${msg}). ` +
-            `If this is "Unknown channel: browse:engines-requested", the running stack ` +
-            `predates the browse:engines-* channels — rebuild/redeploy before judging the engines.`,
-        );
-      }
-
-      // ── 2. Shape ──
-      expect(entries.length, 'the Inference document states engines → the list is non-empty').toBeGreaterThan(0);
-
-      const engines = new Set<string>();
-      for (const entry of entries) {
-        expect(entry.engine.provider, 'an engine names its provider').toBeTruthy();
-        expect(entry.engine.model, 'an engine names its model').toBeTruthy();
-        expect(Object.keys(entry.engine).sort(), 'an engine is a provider and a model, with no identity').toEqual(['model', 'provider']);
-        engines.add(engineKey(entry.engine.provider, entry.engine.model));
-      }
-      expect(engines.size, 'each engine is listed once').toBe(entries.length);
-
-      // ── 3. Each job has one engine ──
-      const jobEngines = new Map<string, number>();
-      for (const entry of entries) {
-        for (const filter of entry.jobs ?? []) {
-          const job = named(filter);
-          expect(JOBS, `"${job}" is a job a claim can name`).toContain(job);
-          jobEngines.set(job, (jobEngines.get(job) ?? 0) + 1);
+        // ── 1. Freshness gate: the channel must exist on the running stack ──
+        let entries: EngineWithLimits[];
+        try {
+          // `.fresh()` is the explicit one-shot read: a CacheObservable is not awaitable.
+          entries = await client.browse.engines().fresh();
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          throw new Error(
+            `STACK FRESHNESS GATE: browse.engines() did not answer (${msg}). ` +
+              `If this is "Unknown channel: browse:engines-requested", the running stack ` +
+              `predates the browse:engines-* channels — rebuild/redeploy before judging the engines.`,
+          );
         }
-      }
-      for (const job of JOBS) {
+
+        // ── 2. Shape ──
         expect(
-          jobEngines.get(job) ?? 0,
-          `"${job}" has exactly one engine (the Inference document gives each job one; the list holds each engine once)`,
-        ).toBe(1);
-      }
+          entries.length,
+          'the Inference document states engines → the list is non-empty',
+        ).toBeGreaterThan(0);
 
-      // ── 4. No secret material on the wire ──
-      const raw = JSON.stringify(entries);
-      expect(raw.includes('apiKey'), 'reply must not leak inference config secrets').toBe(false);
-
-      // ── 5. Attribution loop: the engine a real worker's work names ∈ the engines ──
-      const rid = (
-        await client.yield.resource({
-          name: 'Engine Attribution',
-          storageUri: 'file://e2e/engine-attribution.txt',
-          file: Buffer.from(
-            'Photosynthesis converts sunlight into chemical energy. ' +
-              'The Calvin cycle fixes carbon dioxide into glucose. ' +
-              'Chlorophyll absorbs red and blue light most strongly.',
-            'utf-8',
-          ),
-          format: 'text/plain',
-          language: 'en',
-        })
-      ).resourceId;
-
-      const done = await client.mark.delegate(rid, { motivation: 'highlighting', sourceLanguage: 'en' });
-      // Awaited, a delegation resolves on the job's completion. A mark job's
-      // result is its counts or a decline; the counts say it did its work.
-      expect(done.result !== undefined && 'found' in done.result, 'the highlighting job reports its counts').toBe(true);
-
-      // The worker stamps `generator` (single or pipeline array) on what it
-      // created. Poll for projection delivery, then assert the engine's membership.
-      await expect
-        .poll(
-          async () =>
-            (await client.browse.annotations(rid).fresh()).some((a) => a.generator !== undefined),
-          { timeout: 30_000 },
-        )
-        .toBe(true);
-
-      const generated = (await client.browse.annotations(rid).fresh()).filter((a) => a.generator !== undefined);
-      expect(generated.length, 'the delegated job produced ≥1 generator-stamped annotation').toBeGreaterThan(0);
-
-      for (const ann of generated) {
-        const generators = Array.isArray(ann.generator) ? ann.generator : [ann.generator!];
-        for (const gen of generators) {
-          expect(gen['@type'], 'a worker\'s work is a software agent\'s').toBe('Software');
-          expect(gen['@id'], 'generator names the agent that did the work').toMatch(/:agents:/);
-          const software = gen as { provider?: string; model?: string };
+        const engines = new Set<string>();
+        for (const entry of entries) {
           expect(
-            engines.has(engineKey(software.provider, software.model)),
-            `the engine ${engineKey(software.provider, software.model)} is one of the KB's engines — a miss is a ` +
-              `stated-vs-actual discrepancy`,
-          ).toBe(true);
+            entry.engine.provider,
+            'an engine names its provider',
+          ).toBeTruthy();
+          expect(entry.engine.model, 'an engine names its model').toBeTruthy();
+          expect(
+            Object.keys(entry.engine).sort(),
+            'an engine is a provider and a model, with no identity',
+          ).toEqual(['model', 'provider']);
+          engines.add(engineKey(entry.engine.provider, entry.engine.model));
         }
+        expect(engines.size, 'each engine is listed once').toBe(entries.length);
+
+        // ── 3. Each job has one engine ──
+        const jobEngines = new Map<string, number>();
+        for (const entry of entries) {
+          for (const filter of entry.jobs ?? []) {
+            const job = named(filter);
+            expect(JOBS, `"${job}" is a job a claim can name`).toContain(job);
+            jobEngines.set(job, (jobEngines.get(job) ?? 0) + 1);
+          }
+        }
+        for (const job of JOBS) {
+          expect(
+            jobEngines.get(job) ?? 0,
+            `"${job}" has exactly one engine (the Inference document gives each job one; the list holds each engine once)`,
+          ).toBe(1);
+        }
+
+        // ── 4. No secret material on the wire ──
+        const raw = JSON.stringify(entries);
+        expect(
+          raw.includes('apiKey'),
+          'reply must not leak inference config secrets',
+        ).toBe(false);
+
+        // ── 5. Attribution loop: the engine a real worker's work names ∈ the engines ──
+        const rid = (
+          await client.yield.resource({
+            name: 'Engine Attribution',
+            storageUri: 'file://e2e/engine-attribution.txt',
+            file: Buffer.from(
+              'Photosynthesis converts sunlight into chemical energy. ' +
+                'The Calvin cycle fixes carbon dioxide into glucose. ' +
+                'Chlorophyll absorbs red and blue light most strongly.',
+              'utf-8',
+            ),
+            format: 'text/plain',
+            language: 'en',
+          })
+        ).resourceId;
+
+        const done = await client.mark.delegate(rid, {
+          motivation: 'highlighting',
+          sourceLanguage: 'en',
+        });
+        // Awaited, a delegation resolves on the job's completion. A mark job's
+        // result is its counts or a decline; the counts say it did its work.
+        expect(
+          done.result !== undefined && 'found' in done.result,
+          'the highlighting job reports its counts',
+        ).toBe(true);
+
+        // The worker stamps `generator` (single or pipeline array) on what it
+        // created. Poll for projection delivery, then assert the engine's membership.
+        await expect
+          .poll(
+            async () =>
+              (await client.browse.annotations(rid).fresh()).some(
+                (a) => a.generator !== undefined,
+              ),
+            { timeout: 30_000 },
+          )
+          .toBe(true);
+
+        const generated = (await client.browse.annotations(rid).fresh()).filter(
+          (a) => a.generator !== undefined,
+        );
+        expect(
+          generated.length,
+          'the delegated job produced ≥1 generator-stamped annotation',
+        ).toBeGreaterThan(0);
+
+        for (const ann of generated) {
+          const generators = Array.isArray(ann.generator)
+            ? ann.generator
+            : [ann.generator!];
+          for (const gen of generators) {
+            expect(gen['@type'], "a worker's work is a software agent's").toBe(
+              'Software',
+            );
+            expect(
+              gen['@id'],
+              'generator names the agent that did the work',
+            ).toMatch(/:agents:/);
+            const software = gen as { provider?: string; model?: string };
+            expect(
+              engines.has(engineKey(software.provider, software.model)),
+              `the engine ${engineKey(software.provider, software.model)} is one of the KB's engines — a miss is a ` +
+                `stated-vs-actual discrepancy`,
+            ).toBe(true);
+          }
+        }
+      } finally {
+        opened.dispose();
       }
-    } finally {
-      opened.dispose();
-    }
-  });
+    },
+  );
 });

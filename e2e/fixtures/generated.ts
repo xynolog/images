@@ -30,10 +30,16 @@ export async function generatedDescriptor(
           hit = resources.find((r) => r.name === name);
           return hit !== undefined;
         },
-        { timeout, message: `no generated resource named "${name}" reached the read model` },
+        {
+          timeout,
+          message: `no generated resource named "${name}" reached the read model`,
+        },
       )
       .toBe(true);
-    if (!hit) throw new Error(`unreachable: poll resolved without a descriptor for "${name}"`);
+    if (!hit)
+      throw new Error(
+        `unreachable: poll resolved without a descriptor for "${name}"`,
+      );
     return hit;
   } finally {
     opened.dispose();

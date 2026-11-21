@@ -34,7 +34,10 @@ import { expect, type Page } from '@playwright/test';
  * page rail for PDFs), it must name the resource it wants. Specs 02 and 03 are
  * fine on `.first()` because they only assert that *something* opens.
  */
-export async function openResourceByName(page: Page, name: string): Promise<void> {
+export async function openResourceByName(
+  page: Page,
+  name: string,
+): Promise<void> {
   await page.goto('/en/know/discover');
 
   // The input is labelled from an i18n string, so it is reached by its class —
@@ -44,8 +47,14 @@ export async function openResourceByName(page: Page, name: string): Promise<void
   await search.fill(name);
 
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const card = page.getByRole('button', { name: new RegExp(`^open resource:\\s*${escaped}`, 'i') }).first();
+  const card = page
+    .getByRole('button', {
+      name: new RegExp(`^open resource:\\s*${escaped}`, 'i'),
+    })
+    .first();
   await expect(card).toBeVisible({ timeout: 15_000 });
   await card.click();
-  await expect(page.getByText(/loading resource/i)).toBeHidden({ timeout: 30_000 });
+  await expect(page.getByText(/loading resource/i)).toBeHidden({
+    timeout: 30_000,
+  });
 }

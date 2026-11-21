@@ -525,16 +525,16 @@ const SEED_RESOURCES: readonly SeedSpec[] = [
     language: 'en',
     bytes: Buffer.from(
       'Quantum computing is a model of computation that uses quantum-mechanical ' +
-      'phenomena, such as superposition and entanglement, to perform operations on ' +
-      'data. Where a classical bit is either zero or one, a qubit can be a ' +
-      'superposition of both states until measured.\n\n' +
-      'A qubit is the quantum analogue of a bit. Its state is described by a ' +
-      'two-dimensional complex vector. Measurement collapses the qubit to one of ' +
-      'the two basis states with probabilities determined by the squared magnitudes ' +
-      'of the amplitudes.\n\n' +
-      'When two or more qubits become entangled, their joint state cannot be ' +
-      'expressed as a product of individual qubit states. Operations on one ' +
-      'entangled qubit instantaneously affect the others, regardless of distance.\n',
+        'phenomena, such as superposition and entanglement, to perform operations on ' +
+        'data. Where a classical bit is either zero or one, a qubit can be a ' +
+        'superposition of both states until measured.\n\n' +
+        'A qubit is the quantum analogue of a bit. Its state is described by a ' +
+        'two-dimensional complex vector. Measurement collapses the qubit to one of ' +
+        'the two basis states with probabilities determined by the squared magnitudes ' +
+        'of the amplitudes.\n\n' +
+        'When two or more qubits become entangled, their joint state cannot be ' +
+        'expressed as a product of individual qubit states. Operations on one ' +
+        'entangled qubit instantaneously affect the others, regardless of distance.\n',
       'utf-8',
     ),
   },
@@ -545,17 +545,17 @@ const SEED_RESOURCES: readonly SeedSpec[] = [
     language: 'en',
     bytes: Buffer.from(
       'Photosynthesis is the process by which plants, algae, and certain bacteria ' +
-      'convert light energy into chemical energy stored in glucose. The overall ' +
-      'reaction transforms carbon dioxide and water into sugar and oxygen, using ' +
-      'sunlight as the energy input.\n\n' +
-      'The light-dependent reactions occur in the thylakoid membranes of ' +
-      'chloroplasts. Chlorophyll absorbs photons and transfers electrons through a ' +
-      'chain of carriers, generating ATP and NADPH while splitting water molecules ' +
-      'and releasing oxygen as a byproduct.\n\n' +
-      'The light-independent reactions, known as the Calvin cycle, take place in ' +
-      'the chloroplast stroma. The enzyme RuBisCO fixes carbon dioxide onto a ' +
-      'five-carbon sugar, and a series of reductions powered by ATP and NADPH ' +
-      'produce glucose and other organic molecules.\n',
+        'convert light energy into chemical energy stored in glucose. The overall ' +
+        'reaction transforms carbon dioxide and water into sugar and oxygen, using ' +
+        'sunlight as the energy input.\n\n' +
+        'The light-dependent reactions occur in the thylakoid membranes of ' +
+        'chloroplasts. Chlorophyll absorbs photons and transfers electrons through a ' +
+        'chain of carriers, generating ATP and NADPH while splitting water molecules ' +
+        'and releasing oxygen as a byproduct.\n\n' +
+        'The light-independent reactions, known as the Calvin cycle, take place in ' +
+        'the chloroplast stroma. The enzyme RuBisCO fixes carbon dioxide onto a ' +
+        'five-carbon sugar, and a series of reductions powered by ATP and NADPH ' +
+        'produce glucose and other organic molecules.\n',
       'utf-8',
     ),
   },
@@ -579,8 +579,14 @@ export interface SeedOptions {
  * A seed already present is a success — the suite only cares
  * that the seed resources are present, not that this run created them.
  */
-export async function seedKb(opts: SeedOptions): Promise<{ created: number; existed: number }> {
-  const log = opts.log ?? ((m: string) => { console.log(m); });
+export async function seedKb(
+  opts: SeedOptions,
+): Promise<{ created: number; existed: number }> {
+  const log =
+    opts.log ??
+    ((m: string) => {
+      console.log(m);
+    });
   log(`[seed] gateway=${opts.gatewayUrl} user=${opts.email}`);
 
   const opened = await sessionFor({
@@ -607,7 +613,9 @@ export async function seedKb(opts: SeedOptions): Promise<{ created: number; exis
     // awaitable, and this is a one-shot read. The limit is generous on purpose: a
     // short page would report a present seed as missing and re-create it.
     const present = new Set<string>();
-    for (const r of (await client.browse.resources({ limit: 500, archived: false }).fresh()).resources) {
+    for (const r of (
+      await client.browse.resources({ limit: 500, archived: false }).fresh()
+    ).resources) {
       const uri = getStorageUri(r);
       if (uri) present.add(uri);
     }

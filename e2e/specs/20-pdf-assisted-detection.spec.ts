@@ -52,7 +52,9 @@ async function openPdfInAnnotateMode(page: Page) {
 // Annotations sub-tabs are icon-only buttons (aria-pressed) in the panel's tab
 // strip; select by emoji, scoped to the strip so it can't collide elsewhere.
 async function selectSubTab(page: Page, emoji: string) {
-  const tab = page.locator('.xynolog-unified-panel__tabs').getByRole('button', { name: emoji, exact: true });
+  const tab = page
+    .locator('.xynolog-unified-panel__tabs')
+    .getByRole('button', { name: emoji, exact: true });
   await expect(tab).toBeVisible({ timeout: 10_000 });
   if ((await tab.getAttribute('aria-pressed')) !== 'true') await tab.click();
   await expect(tab).toHaveAttribute('aria-pressed', 'true');
@@ -65,87 +67,123 @@ async function expectRectsPersist(page: Page, rects: Locator, before: number) {
   const url = page.url();
   await page.reload();
   await expect(page).toHaveURL(url);
-  await expect(page.getByText(/loading resource/i)).toBeHidden({ timeout: 30_000 });
+  await expect(page.getByText(/loading resource/i)).toBeHidden({
+    timeout: 30_000,
+  });
   await page.getByRole('button', { name: /^mode$/i }).click();
   await page.getByRole('menuitem', { name: /^annotate$/i }).click();
   await expect(page.locator(SVG)).toBeVisible({ timeout: 30_000 });
-  await expect.poll(async () => rects.count(), { timeout: 30_000 }).toBeGreaterThan(before);
+  await expect
+    .poll(async () => rects.count(), { timeout: 30_000 })
+    .toBeGreaterThan(before);
 }
 
 test.describe('delegated detection on a text-layer PDF', () => {
-  test('delegated commenting on a PDF dispatches, renders rect-anchored annotations, and persists', { tag: ['@model'] }, async ({ signedInPage: page, bus }) => {
-    test.setTimeout(150_000); // includes a real LLM comment round-trip
+  test(
+    'delegated commenting on a PDF dispatches, renders rect-anchored annotations, and persists',
+    { tag: ['@model'] },
+    async ({ signedInPage: page, bus }) => {
+      test.setTimeout(150_000); // includes a real LLM comment round-trip
 
-    await openPdfInAnnotateMode(page);
-    const rects = page.locator(`${SVG} rect`);
-    const rectsBefore = await rects.count();
+      await openPdfInAnnotateMode(page);
+      const rects = page.locator(`${SVG} rect`);
+      const rectsBefore = await rects.count();
 
-    // Comments sub-tab (💬) → expand "Annotate Comments".
-    await selectSubTab(page, '💬');
-    const main = page.getByRole('main');
-    const toggle = main.getByRole('button', { name: /annotate comments/i }).first();
-    await expect(toggle).toBeVisible({ timeout: 10_000 });
-    if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+      // Comments sub-tab (💬) → expand "Annotate Comments".
+      await selectSubTab(page, '💬');
+      const main = page.getByRole('main');
+      const toggle = main
+        .getByRole('button', { name: /annotate comments/i })
+        .first();
+      await expect(toggle).toBeVisible({ timeout: 10_000 });
+      if ((await toggle.getAttribute('aria-expanded')) !== 'true')
+        await toggle.click();
 
-    // Drop the density cap: the fixture is only ~346 words, so a "N per 2000
-    // words" target rounds toward zero. Unchecked → no density guidance (the
-    // prompt lets the passage decide), so the model comments on what's salient.
-    const densityToggle = page.locator('input[type="checkbox"][data-variant="comment"]');
-    if (await densityToggle.isChecked()) await densityToggle.uncheck();
+      // Drop the density cap: the fixture is only ~346 words, so a "N per 2000
+      // words" target rounds toward zero. Unchecked → no density guidance (the
+      // prompt lets the passage decide), so the model comments on what's salient.
+      const densityToggle = page.locator(
+        'input[type="checkbox"][data-variant="comment"]',
+      );
+      if (await densityToggle.isChecked()) await densityToggle.uncheck();
 
-    bus.clear();
-    const submit = page.locator('button[data-variant="delegate"][data-type="comment"]');
-    await expect(submit).toBeEnabled({ timeout: 5_000 });
-    await submit.click();
+      bus.clear();
+      const submit = page.locator(
+        'button[data-variant="delegate"][data-type="comment"]',
+      );
+      await expect(submit).toBeEnabled({ timeout: 5_000 });
+      await submit.click();
 
-    // Dispatch — the delegated job crossed the wire as a `mark` job of the commenting motivation.
-    const { request } = await bus.expectRequestResponse('job:create', 'job:created', 30_000);
-    expect(request.channel).toBe('job:create');
+      // Dispatch — the delegated job crossed the wire as a `mark` job of the commenting motivation.
+      const { request } = await bus.expectRequestResponse(
+        'job:create',
+        'job:created',
+        30_000,
+      );
+      expect(request.channel).toBe('job:create');
 
-    // Outcome — detected comments anchor to PDF viewrects and render as <rect>s.
-    // Poll for growth (LLM + SSE latency); PRE-#736 this job threw on a PDF.
-    await expect.poll(async () => rects.count(), { timeout: 110_000 }).toBeGreaterThan(rectsBefore);
+      // Outcome — detected comments anchor to PDF viewrects and render as <rect>s.
+      // Poll for growth (LLM + SSE latency); PRE-#736 this job threw on a PDF.
+      await expect
+        .poll(async () => rects.count(), { timeout: 110_000 })
+        .toBeGreaterThan(rectsBefore);
 
-    await expectRectsPersist(page, rects, rectsBefore);
-  });
+      await expectRectsPersist(page, rects, rectsBefore);
+    },
+  );
 
-  test('delegated linking on a PDF dispatches, renders rect-anchored references, and persists', { tag: ['@model'] }, async ({ signedInPage: page, bus }) => {
-    test.setTimeout(150_000); // includes a real LLM entity-extraction round-trip
+  test(
+    'delegated linking on a PDF dispatches, renders rect-anchored references, and persists',
+    { tag: ['@model'] },
+    async ({ signedInPage: page, bus }) => {
+      test.setTimeout(150_000); // includes a real LLM entity-extraction round-trip
 
-    await openPdfInAnnotateMode(page);
-    const rects = page.locator(`${SVG} rect`);
-    const rectsBefore = await rects.count();
+      await openPdfInAnnotateMode(page);
+      const rects = page.locator(`${SVG} rect`);
+      const rectsBefore = await rects.count();
 
-    // References sub-tab (🔵) → expand "Annotate References".
-    await selectSubTab(page, '🔵');
-    const main = page.getByRole('main');
-    const toggle = main.getByRole('button', { name: /annotate references/i }).first();
-    await expect(toggle).toBeVisible({ timeout: 10_000 });
-    if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+      // References sub-tab (🔵) → expand "Annotate References".
+      await selectSubTab(page, '🔵');
+      const main = page.getByRole('main');
+      const toggle = main
+        .getByRole('button', { name: /annotate references/i })
+        .first();
+      await expect(toggle).toBeVisible({ timeout: 10_000 });
+      if ((await toggle.getAttribute('aria-expanded')) !== 'true')
+        await toggle.click();
 
-    // Select the Concept entity-type chip — the respiration passage is
-    // Concept-dense (glucose, ATP, mitochondria, …), so extraction reliably
-    // yields references. Mirrors 06-assisted-reference's chip flow.
-    const conceptChip = page
-      .locator('.xynolog-delegate-widget__chips .xynolog-chip--selectable')
-      .filter({ hasText: /concept/i });
-    await expect(conceptChip).toBeVisible({ timeout: 10_000 });
-    await conceptChip.click();
-    await expect(conceptChip).toHaveAttribute('data-selected', 'true');
+      // Select the Concept entity-type chip — the respiration passage is
+      // Concept-dense (glucose, ATP, mitochondria, …), so extraction reliably
+      // yields references. Mirrors 06-assisted-reference's chip flow.
+      const conceptChip = page
+        .locator('.xynolog-delegate-widget__chips .xynolog-chip--selectable')
+        .filter({ hasText: /concept/i });
+      await expect(conceptChip).toBeVisible({ timeout: 10_000 });
+      await conceptChip.click();
+      await expect(conceptChip).toHaveAttribute('data-selected', 'true');
 
-    bus.clear();
-    const submit = page.locator('button[data-variant="delegate"][data-type="reference"]');
-    await expect(submit).toBeEnabled({ timeout: 5_000 });
-    await submit.click();
+      bus.clear();
+      const submit = page.locator(
+        'button[data-variant="delegate"][data-type="reference"]',
+      );
+      await expect(submit).toBeEnabled({ timeout: 5_000 });
+      await submit.click();
 
-    // Dispatch — the delegated job crossed the wire as a `mark` job of the linking
-    // motivation.
-    const { request } = await bus.expectRequestResponse('job:create', 'job:created', 30_000);
-    expect(request.channel).toBe('job:create');
+      // Dispatch — the delegated job crossed the wire as a `mark` job of the linking
+      // motivation.
+      const { request } = await bus.expectRequestResponse(
+        'job:create',
+        'job:created',
+        30_000,
+      );
+      expect(request.channel).toBe('job:create');
 
-    // Outcome — detected references anchor to PDF viewrects and render as <rect>s.
-    await expect.poll(async () => rects.count(), { timeout: 110_000 }).toBeGreaterThan(rectsBefore);
+      // Outcome — detected references anchor to PDF viewrects and render as <rect>s.
+      await expect
+        .poll(async () => rects.count(), { timeout: 110_000 })
+        .toBeGreaterThan(rectsBefore);
 
-    await expectRectsPersist(page, rects, rectsBefore);
-  });
+      await expectRectsPersist(page, rects, rectsBefore);
+    },
+  );
 });
