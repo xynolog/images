@@ -30,7 +30,7 @@ from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Final, Literal, final
 
-from xynolog.annotations import TextSpan, reconcile
+from xynolog.annotations import ReconciledSpan, TextSpan, reconcile
 from xynolog.identifiers import AnnotationId, ResourceId
 from xynolog.model import stated
 from xynolog.types import (
@@ -90,7 +90,7 @@ from xynolog_worker.log import LOG
 from xynolog_worker.media_types import GENERATABLE_MEDIA_TYPES
 from xynolog_worker.numbers import as_javascript_writes
 
-type BuildAnnotation = Callable[[Motivation, TextSpan, AnnotationBodies | None], Annotation]
+type BuildAnnotation = Callable[[Motivation, TextSpan | ReconciledSpan, AnnotationBodies | None], Annotation]
 """How a span of the text is built into an annotation of the job's resource: its motivation, the span, and its body where its kind has one.
 
 The text, or a PDF's anchored text, the resource and the agent that works on

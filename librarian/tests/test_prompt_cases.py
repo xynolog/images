@@ -136,9 +136,23 @@ def test_a_prompt_is_the_text_the_table_gives_with_its_token_limit_and_its_tempe
 # The table holds every cut where every count is the same. This holds what a cut counts.
 
 
+def stated(schema: JsonObject) -> JsonObject:
+    """A schema the table states, or names by its `$ref`: the one Protocol's file of that `$id` holds, less what names the file."""
+    if set(schema) != {"$ref"}:
+        return schema
+    ref = text(schema["$ref"], "$ref")
+    (found,) = [read(path) for path in SPEC.rglob(ref.rsplit("/", 1)[1])]
+    assert found["$id"] == ref
+    return {key: value for key, value in found.items() if key not in ("$schema", "$id")}
+
+
 def test_the_two_prompts_asked_for_elements_are_sent_with_the_schemas_the_table_states() -> None:
-    assert set(TABLE) == {"$comment", "runBy", "elements", "cases"}
-    assert thing(TABLE["elements"], "elements") == {"score": SCORE_ELEMENT, "reference-suggestions": SUGGESTION_ELEMENT}
+    assert set(TABLE) == {"$comment", "elements", "cases"}
+    elements = thing(TABLE["elements"], "elements")
+    assert {name: stated(thing(schema, name)) for name, schema in elements.items()} == {
+        "score": SCORE_ELEMENT,
+        "reference-suggestions": SUGGESTION_ELEMENT,
+    }
 
 
 def test_a_cut_counts_code_points_and_splits_no_character() -> None:

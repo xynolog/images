@@ -19,7 +19,7 @@ import pytest
 from aio import run, turns
 from opentelemetry.sdk.metrics.export import Histogram, HistogramDataPoint, InMemoryMetricReader, Metric, NumberDataPoint, Sum
 from pydantic import JsonValue
-from telemetry_rows import as_the_table_writes, worker_metrics
+from telemetry_rows import carried, worker_metrics
 from xynolog.types import UnitCursor
 from xynolog_inference.interface import StructuredReadError, TokenUsage
 
@@ -427,7 +427,7 @@ def test_what_a_descent_records_is_what_the_table_lists(metric_reader: InMemoryM
             assert set(point.attributes or {}) == keys, f"{name} carries {set(point.attributes or {})}; the table lists {keys}"
         for attribute in row.attributes:
             if attribute.values is not None:
-                seen = {as_the_table_writes((point.attributes or {})[attribute.key]) for point in points}
+                seen = {carried((point.attributes or {})[attribute.key]) for point in points}
                 assert seen <= set(attribute.values), f"{name}: {attribute.key} was {seen}"
                 # Every call is counted, timed and its proposals recorded, so each of those has been filed under
                 # every value. Tokens are an answered call's alone, and only the direction has every value there.

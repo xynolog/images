@@ -79,7 +79,7 @@ def read_result(payload: JsonObject, score: float) -> JsonObject:
 
 
 def test_the_table_has_a_case_of_each_of_its_seven_parts_and_each_case_is_of_one() -> None:
-    only(TABLE, ("$comment", "runBy", "collections", "cases"), "the table")
+    only(TABLE, ("$comment", "collections", "cases"), "the table")
     for name in PARTS:
         assert part(name) != [], name
     for case in PAYLOAD_CASES:

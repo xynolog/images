@@ -16,7 +16,7 @@ from typing import Final, Protocol, final
 
 import pytest
 from pydantic import JsonValue
-from xynolog.annotations import TextSpan, annotation_of_span
+from xynolog.annotations import ReconciledSpan, TextSpan, annotation_of_span
 from xynolog.identifiers import JobId, ResourceId
 from xynolog.model import written
 from xynolog.types import (
@@ -55,7 +55,7 @@ GENERATOR: Final[Agent] = AgentSoftware(type="Software", id="did:web:test.local:
 def text_build(text: str) -> BuildAnnotation:
     """How a span of `text` is built into an annotation of the resource, as the worker's agent."""
 
-    def build(motivation: Motivation, span: TextSpan, body: AnnotationBodies | None) -> Annotation:
+    def build(motivation: Motivation, span: TextSpan | ReconciledSpan, body: AnnotationBodies | None) -> Annotation:
         return annotation_of_span(text, span, resource_id=RESOURCE, motivation=motivation, generator=GENERATOR, body=body)
 
     return build
@@ -64,7 +64,7 @@ def text_build(text: str) -> BuildAnnotation:
 def pdf_build(anchored: AnchoredText) -> BuildAnnotation:
     """The same of a PDF's anchored text: a span is selected by where its words are on a page."""
 
-    def build(motivation: Motivation, span: TextSpan, body: AnnotationBodies | None) -> Annotation:
+    def build(motivation: Motivation, span: TextSpan | ReconciledSpan, body: AnnotationBodies | None) -> Annotation:
         return annotation_of_span(anchored, span, resource_id=RESOURCE, motivation=motivation, generator=GENERATOR, body=body)
 
     return build

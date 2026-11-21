@@ -172,11 +172,11 @@ def test_the_sdk_the_inference_drivers_and_the_service_package_are_the_ones_in_t
     sources = table(table(table(toml(PROJECT / "pyproject.toml")["tool"], "tool")["uv"], "uv")["sources"], "sources")
     assert sources == {
         "xynolog": {"path": "../.local/sdk-artifacts/current/python/xynolog-1.2611.0.dev20261120131050+g548e4fb-py3-none-any.whl"},
-        "xynolog-inference": {"path": "../../shared/python/inference", "editable": True},
-        "xynolog-service": {"path": "../../shared/python/service", "editable": True},
+        "xynolog-inference": {"path": "../shared/python/inference", "editable": True},
+        "xynolog-service": {"path": "../shared/python/service", "editable": True},
     }
-    assert (PROJECT / "../../shared/python/inference").resolve() == INFERENCE.resolve()
-    assert (PROJECT / "../../shared/python/service").resolve() == SHARED.resolve()
+    assert (PROJECT / "../shared/python/inference").resolve() == INFERENCE.resolve()
+    assert (PROJECT / "../shared/python/service").resolve() == SHARED.resolve()
     # And the lockfile took each from there.
     locked = toml(PROJECT / "uv.lock")["package"]
     assert isinstance(locked, list)
@@ -184,8 +184,8 @@ def test_the_sdk_the_inference_drivers_and_the_service_package_are_the_ones_in_t
     assert taken_from["xynolog"] == {
         "path": "../.local/sdk-artifacts/current/python/xynolog-1.2611.0.dev20261120131050+g548e4fb-py3-none-any.whl"
     }
-    assert taken_from["xynolog-inference"] == {"editable": "../../shared/python/inference"}
-    assert taken_from["xynolog-service"] == {"editable": "../../shared/python/service"}
+    assert taken_from["xynolog-inference"] == {"editable": "../shared/python/inference"}
+    assert taken_from["xynolog-service"] == {"editable": "../shared/python/service"}
     assert taken_from["xynolog-worker"] == {"editable": "."}
 
 

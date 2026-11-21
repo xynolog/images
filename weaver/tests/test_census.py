@@ -142,11 +142,11 @@ def test_the_sdk_the_graph_stores_and_the_service_package_are_the_ones_in_this_r
     sources = table(table(table(MANIFEST["tool"], "tool")["uv"], "uv")["sources"], "sources")
     assert sources == {
         "xynolog": {"path": "../.local/sdk-artifacts/current/python/xynolog-1.2611.0.dev20261120131050+g548e4fb-py3-none-any.whl"},
-        "xynolog-graph": {"path": "../../shared/python/graph", "editable": True},
-        "xynolog-service": {"path": "../../shared/python/service", "editable": True},
+        "xynolog-graph": {"path": "../shared/python/graph", "editable": True},
+        "xynolog-service": {"path": "../shared/python/service", "editable": True},
     }
-    assert (PROJECT / "../../shared/python/graph/pyproject.toml").resolve() == GRAPH / "pyproject.toml"
-    assert (PROJECT / "../../shared/python/service/pyproject.toml").resolve() == SHARED / "pyproject.toml"
+    assert (PROJECT / "../shared/python/graph/pyproject.toml").resolve() == GRAPH / "pyproject.toml"
+    assert (PROJECT / "../shared/python/service/pyproject.toml").resolve() == SHARED / "pyproject.toml"
 
 
 def test_the_distribution_is_named_for_the_service() -> None:

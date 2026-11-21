@@ -28,7 +28,7 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import Gauge, InMemoryMetricReader, Metric, NumberDataPoint
 from opentelemetry.util.types import AttributeValue
 from spec import ROOT
-from telemetry_rows import MetricRow, as_the_table_writes, metrics_named, resource_keys
+from telemetry_rows import MetricRow, metrics_named, resource_keys
 from xynolog.identifiers import UserId
 from xynolog.identity import kb_did
 
@@ -107,7 +107,7 @@ def held_to(row: MetricRow, metric: Metric) -> None:
         assert sorted(attributes) == sorted(listed), f"a point of {metric.name} carries {sorted(attributes)}"
         for key, value in attributes.items():
             values = listed[key]
-            assert values is None or as_the_table_writes(value) in values, f"{metric.name} carries {key}={value!r}"
+            assert values is None or value in values, f"{metric.name} carries {key}={value!r}"
 
 
 # ── when nothing is exported ────────────────────────────────────────────

@@ -9,8 +9,8 @@ from spec import SPEC
 
 class Attribute(BaseModel, frozen=True, extra="forbid"):
     key: str
-    values: list[str] | None = None
-    """The only values it takes, where the row lists them."""
+    values: list[str | bool] | None = None
+    """The only values it takes, each of the type it is carried as, where the row lists them."""
     only: str | None = None
     """When it is carried, where that is not always."""
 
@@ -47,8 +47,7 @@ def worker_metrics(prefix: str) -> dict[str, MetricRow]:
     return {row.name: row for row in TABLE.metrics if "worker" in row.services and row.name.startswith(prefix)}
 
 
-def as_the_table_writes(value: object) -> str:
-    """An attribute's value as the table lists one: text, with a truth value as OTLP writes it."""
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    return str(value)
+def carried(value: object) -> str | bool:
+    """An attribute's value, which the telemetry schema allows only as a string or a boolean."""
+    assert isinstance(value, str | bool), f"{value!r} is neither a string nor a boolean"
+    return value

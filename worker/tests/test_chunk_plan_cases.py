@@ -148,13 +148,20 @@ class StatedResult(Stated, frozen=True):
     under_reported: Annotated[list[StatedVerdict], Field(alias="underReported")]
 
 
+class StatedSpan(Stated, frozen=True):
+    """The code points of a piece from `from` up to but not including `to`."""
+
+    start: Annotated[int, Field(alias="from")]
+    end: Annotated[int, Field(alias="to")]
+
+
 class DescentCase(Stated, frozen=True):
     kind: Literal["descent"]
     why: str
     piece: str
     overlap: int
     replies: list[Answers | FailsWith]
-    asked: list[tuple[int, int]]
+    asked: list[StatedSpan]
     result: StatedResult | None = None
     raises: int | None = None
 
@@ -164,7 +171,6 @@ type Case = Annotated[BudgetCase | StepCase | WalkCase | DescentCase, Field(disc
 
 class Table(Stated, frozen=True):
     comment: Annotated[str, Field(alias="$comment")]
-    run_by: Annotated[dict[str, list[str]], Field(alias="runBy")]
     """Who runs the table, which lint:spec-case-tables holds it to."""
     sizing: StatedSizing
     cases: list[Case]
@@ -344,5 +350,5 @@ def test_a_piece_is_asked_about_and_descended_into_as_the_table_says(case: Desce
         assert raised_by(descent) is raised, case.why
 
     # A span of the piece is two offsets: they count its code points.
-    assert asked == [case.piece[start:end] for start, end in case.asked], case.why
+    assert asked == [case.piece[span.start : span.end] for span in case.asked], case.why
     assert len(asked) == len(case.replies), case.why

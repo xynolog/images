@@ -29,7 +29,7 @@ from xynolog_librarian.reads import ProfilesUnread
 TABLE = read(ROOT / "protocol/specs/src/principals/naming-cases.json")
 CASES = objects(TABLE["cases"], "cases")
 
-TABLE_MEMBERS = ("$comment", "runBy", "cases")
+TABLE_MEMBERS = ("$comment", "cases")
 CASE_MEMBERS = ("why", "reply", "profiles", "named")
 
 
