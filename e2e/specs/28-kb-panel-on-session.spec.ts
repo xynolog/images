@@ -23,7 +23,8 @@ import { test, expect } from '../fixtures/auth';
 import type { Page } from '@playwright/test';
 
 /** The toolbar control for a panel, which carries the active state. */
-const control = (page: Page, panel: string) => page.locator(`[data-panel="${panel}"]`);
+const control = (page: Page, panel: string) =>
+  page.locator(`[data-panel="${panel}"]`);
 
 /** The Knowledge Base panel proper — its header names it. */
 const kbPanel = (page: Page) =>
@@ -37,7 +38,10 @@ test.describe('knowledge base panel on a live session', () => {
     // corrector, so if it is still active after the reload the hook did nothing.
     await control(page, 'settings').click();
     await expect(page.locator('.xynolog-settings-panel')).toBeVisible();
-    await expect(control(page, 'settings')).toHaveAttribute('aria-pressed', 'true');
+    await expect(control(page, 'settings')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
 
     // Restore the session at launch — the render the hook exists for.
     const urlBeforeReload = page.url();
@@ -45,9 +49,13 @@ test.describe('knowledge base panel on a live session', () => {
     await expect(page).toHaveURL(urlBeforeReload);
 
     // The KB panel wins, with no interaction at all.
-    await expect(control(page, 'knowledge-base')).toHaveAttribute('aria-pressed', 'true', {
-      timeout: 15_000,
-    });
+    await expect(control(page, 'knowledge-base')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+      {
+        timeout: 15_000,
+      },
+    );
     await expect(kbPanel(page)).toBeVisible();
     await expect(
       control(page, 'settings'),

@@ -15,22 +15,22 @@ import subprocess
 def resolve_containers(entries: list[str]) -> tuple[list[str], list[str]]:
     """The containers ``entries`` name, and why each entry that names none, or several, was skipped."""
     listed: list[str] = []
-    if any(not e.startswith('xynolog-') for e in entries):
+    if any(not e.startswith("xynolog-") for e in entries):
         try:
-            result = subprocess.run(['container', 'list', '--all'], capture_output=True, text=True, check=False)
+            result = subprocess.run(["container", "list", "--all"], capture_output=True, text=True, check=False)
         except FileNotFoundError:
-            return [], ['`container` CLI not on PATH — is Apple Container installed?']
+            return [], ["`container` CLI not on PATH — is Apple Container installed?"]
         if result.returncode != 0:
-            return [], [f'container list --all failed: {result.stderr.strip() or f"(exit {result.returncode})"}']
-        listed = [f[0] for f in (line.split() for line in result.stdout.splitlines()) if f and f[0].startswith('xynolog-')]
+            return [], [f"container list --all failed: {result.stderr.strip() or f'(exit {result.returncode})'}"]
+        listed = [f[0] for f in (line.split() for line in result.stdout.splitlines()) if f and f[0].startswith("xynolog-")]
     names: list[str] = []
     skipped: list[str] = []
     for entry in entries:
-        matches = [entry] if entry.startswith('xynolog-') else [n for n in listed if n.endswith(f'-{entry}')]
+        matches = [entry] if entry.startswith("xynolog-") else [n for n in listed if n.endswith(f"-{entry}")]
         if len(matches) == 1:
             names.append(matches[0])
         elif matches:
-            skipped.append(f'{entry} matches several containers ({", ".join(matches)}) — skipped; pass full names with --containers')
+            skipped.append(f"{entry} matches several containers ({', '.join(matches)}) — skipped; pass full names with --containers")
         else:
-            skipped.append(f'no container xynolog-{entry} or xynolog-<kb>-{entry} — skipped')
+            skipped.append(f"no container xynolog-{entry} or xynolog-<kb>-{entry} — skipped")
     return names, skipped

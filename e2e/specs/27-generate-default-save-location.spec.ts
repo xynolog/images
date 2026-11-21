@@ -40,31 +40,42 @@ async function sourceStorageUri(id: string): Promise<string> {
 }
 
 test.describe('generate to the proposed save location', () => {
-  test('an untouched Save location follows title and format, and the artifact lands at the proposal', { tag: ['@model'] }, async ({ signedInPage: page, bus }) => {
-    test.setTimeout(180_000);
+  test(
+    'an untouched Save location follows title and format, and the artifact lands at the proposal',
+    { tag: ['@model'] },
+    async ({ signedInPage: page, bus }) => {
+      test.setTimeout(180_000);
 
-    const modal = await openConfigureStep(page, bus);
-    const folder = folderOf(await sourceStorageUri(resourceIdFromUrl(page.url())));
+      const modal = await openConfigureStep(page, bus);
+      const folder = folderOf(
+        await sourceStorageUri(resourceIdFromUrl(page.url())),
+      );
 
-    const title = `e2e-27-${Date.now()}`;
-    const pathInput = modal.locator('#wizard-storagePath');
+      const title = `e2e-27-${Date.now()}`;
+      const pathInput = modal.locator('#wizard-storagePath');
 
-    // Typing the TITLE is not touching the path: the proposal follows it.
-    await modal.locator('#wizard-title').fill(title);
-    await expect(pathInput, 'the proposal derives from source folder + title + format')
-      .toHaveValue(proposeStoragePath(folder, title, 'text/markdown'));
+      // Typing the TITLE is not touching the path: the proposal follows it.
+      await modal.locator('#wizard-title').fill(title);
+      await expect(
+        pathInput,
+        'the proposal derives from source folder + title + format',
+      ).toHaveValue(proposeStoragePath(folder, title, 'text/markdown'));
 
-    // Switching format re-proposes the extension — which is also why the
-    // form's extension/format mismatch refusal is unreachable from an
-    // untouched form (see spec 26).
-    await modal.locator('#wizard-outputFormat').selectOption('text/plain');
-    const proposed = proposeStoragePath(folder, title, 'text/plain');
-    await expect(pathInput, 'a format switch rewrites the proposed extension').toHaveValue(proposed);
-    await expect(modal.locator('#wizard-format-mismatch')).toHaveCount(0);
+      // Switching format re-proposes the extension — which is also why the
+      // form's extension/format mismatch refusal is unreachable from an
+      // untouched form (see spec 26).
+      await modal.locator('#wizard-outputFormat').selectOption('text/plain');
+      const proposed = proposeStoragePath(folder, title, 'text/plain');
+      await expect(
+        pathInput,
+        'a format switch rewrites the proposed extension',
+      ).toHaveValue(proposed);
+      await expect(modal.locator('#wizard-format-mismatch')).toHaveCount(0);
 
-    // Submit with the path NEVER touched: the proposal is what reaches the
-    // worker, and the worker (which has no fallback) writes exactly there.
-    await runGeneration(modal, bus, 120_000);
-    await expectGeneratedAt(title, proposed, 'text/plain');
-  });
+      // Submit with the path NEVER touched: the proposal is what reaches the
+      // worker, and the worker (which has no fallback) writes exactly there.
+      await runGeneration(modal, bus, 120_000);
+      await expectGeneratedAt(title, proposed, 'text/plain');
+    },
+  );
 });

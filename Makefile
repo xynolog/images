@@ -70,7 +70,7 @@ test-python:
 test-browser:
 	@./scripts/test-browser.sh
 
-## check-e2e: E2E's specs, fixtures and scripts type-check against the SDK bundle, in a Node container
+## check-e2e: E2E's specs, fixtures and scripts type-check against the SDK bundle and are in Prettier's format, in a Node container
 check-e2e:
 	@./scripts/check-e2e.sh
 

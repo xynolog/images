@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { MARK_MOTIVATIONS, faultOf, kbDid, said, type components, type JobFilter } from '@xynolog/core';
+import {
+  MARK_MOTIVATIONS,
+  faultOf,
+  kbDid,
+  said,
+  type components,
+  type JobFilter,
+} from '@xynolog/core';
 import { GATEWAY_URL } from '../playwright.config';
 import { signInSession } from '../fixtures/sdk-session';
 
@@ -58,16 +65,23 @@ type EngineHealth = components['schemas']['WorkerEngineHealth'];
 
 /** A job as a claim names it, in words: `mark.<motivation>`, or `yield`. */
 const named = (filter: JobFilter): string =>
-  filter.jobType === 'mark' ? `mark.${filter.params.motivation}` : filter.jobType;
+  filter.jobType === 'mark'
+    ? `mark.${filter.params.motivation}`
+    : filter.jobType;
 
 /** Every job a claim can name: a `mark` job of each motivation, and a `yield` job. */
-const JOBS = [...MARK_MOTIVATIONS.map((motivation) => `mark.${motivation}`), 'yield'];
+const JOBS = [
+  ...MARK_MOTIVATIONS.map((motivation) => `mark.${motivation}`),
+  'yield',
+];
 
 /** An engine, as a key: `<provider> <model>`. */
-const engineKey = ({ engine }: EngineHealth): string => `${engine.provider} ${engine.model}`;
+const engineKey = ({ engine }: EngineHealth): string =>
+  `${engine.provider} ${engine.model}`;
 
 /** A vitals timestamp as epoch ms; the schema has already held it to `date-time`. */
-const epoch = (at: string | null): number | null => (at === null ? null : Date.parse(at));
+const epoch = (at: string | null): number | null =>
+  at === null ? null : Date.parse(at);
 
 async function fetchHealth(): Promise<components['schemas']['WorkerHealth']> {
   const res = await fetch(WORKER_HEALTH_URL);
@@ -78,116 +92,177 @@ async function fetchHealth(): Promise<components['schemas']['WorkerHealth']> {
 }
 
 /** Refuses `body` by its first fault as a WorkerHealth; with none, it is one. */
-function assertWorkerHealth(body: unknown): asserts body is components['schemas']['WorkerHealth'] {
+function assertWorkerHealth(
+  body: unknown,
+): asserts body is components['schemas']['WorkerHealth'] {
   const fault = faultOf('WorkerHealth', body);
   if (fault !== undefined) {
-    throw new Error(`GET ${WORKER_HEALTH_URL} is not a WorkerHealth: ${said(fault)}`);
+    throw new Error(
+      `GET ${WORKER_HEALTH_URL} is not a WorkerHealth: ${said(fault)}`,
+    );
   }
 }
 
 /** The worker's entry for the knowledge base at `domain`, which is working, so it names its agent and engines. */
-async function workingEntry(domain: string): Promise<{ did: string; engines: EngineHealth[] }> {
+async function workingEntry(
+  domain: string,
+): Promise<{ did: string; engines: EngineHealth[] }> {
   const { knowledgeBases } = await fetchHealth();
   const entry = knowledgeBases.find((kb) => kb.domain === domain);
-  if (entry?.state !== 'working' || entry.did === undefined || entry.engines === undefined) {
-    throw new Error(`${WORKER_HEALTH_URL} does not say the worker is working at ${domain}: ${JSON.stringify(entry)}`);
+  if (
+    entry?.state !== 'working' ||
+    entry.did === undefined ||
+    entry.engines === undefined
+  ) {
+    throw new Error(
+      `${WORKER_HEALTH_URL} does not say the worker is working at ${domain}: ${JSON.stringify(entry)}`,
+    );
   }
   return { did: entry.did, engines: entry.engines };
 }
 
 test.describe('worker vitals (/health)', () => {
-  test('payload is the vitals contract and one real delegated job advances the lifecycle', { tag: ['@model'] }, async () => {
-    test.setTimeout(120_000);
+  test(
+    'payload is the vitals contract and one real delegated job advances the lifecycle',
+    { tag: ['@model'] },
+    async () => {
+      test.setTimeout(120_000);
 
-    const opened = await signInSession();
-    const client = opened.session.client;
-    try {
-      // ── 1–2. The schema, and this knowledge base's entry ──
-      const { domain } = await client.browse.kb();
-      const baseline = await workingEntry(domain);
+      const opened = await signInSession();
+      const client = opened.session.client;
+      try {
+        // ── 1–2. The schema, and this knowledge base's entry ──
+        const { domain } = await client.browse.kb();
+        const baseline = await workingEntry(domain);
 
-      expect(baseline.did, 'the worker is one agent').toMatch(/:agents:[^:]+$/);
-      expect(baseline.did.startsWith(`${kbDid(domain)}:agents:`), `${baseline.did} is an agent of ${kbDid(domain)}`).toBe(true);
-      expect(new Set(baseline.engines.map(engineKey)).size, 'each engine is listed once').toBe(baseline.engines.length);
-      for (const e of baseline.engines) {
-        for (const filter of e.jobs) {
-          expect(JOBS, `engine ${engineKey(e)}: "${named(filter)}" is a job a claim can name`).toContain(named(filter));
+        expect(baseline.did, 'the worker is one agent').toMatch(
+          /:agents:[^:]+$/,
+        );
+        expect(
+          baseline.did.startsWith(`${kbDid(domain)}:agents:`),
+          `${baseline.did} is an agent of ${kbDid(domain)}`,
+        ).toBe(true);
+        expect(
+          new Set(baseline.engines.map(engineKey)).size,
+          'each engine is listed once',
+        ).toBe(baseline.engines.length);
+        for (const e of baseline.engines) {
+          for (const filter of e.jobs) {
+            expect(
+              JOBS,
+              `engine ${engineKey(e)}: "${named(filter)}" is a job a claim can name`,
+            ).toContain(named(filter));
+          }
         }
-      }
 
-      // ── 3. Baseline for the lifecycle leg ──
-      const highlighter = baseline.engines.find((e) => e.jobs.some((filter) => named(filter) === 'mark.highlighting'));
-      expect(highlighter, 'some engine is used for highlighting (which one is spec 18)').toBeTruthy();
-      const highlighterKey = engineKey(highlighter!);
-      const baseCompleted = highlighter!.jobsCompleted;
-      const baseFinished = epoch(highlighter!.lastFinishedAt);
-      const baseByEngine = new Map(baseline.engines.map((e) => [engineKey(e), e.jobsCompleted]));
+        // ── 3. Baseline for the lifecycle leg ──
+        const highlighter = baseline.engines.find((e) =>
+          e.jobs.some((filter) => named(filter) === 'mark.highlighting'),
+        );
+        expect(
+          highlighter,
+          'some engine is used for highlighting (which one is spec 18)',
+        ).toBeTruthy();
+        const highlighterKey = engineKey(highlighter!);
+        const baseCompleted = highlighter!.jobsCompleted;
+        const baseFinished = epoch(highlighter!.lastFinishedAt);
+        const baseByEngine = new Map(
+          baseline.engines.map((e) => [engineKey(e), e.jobsCompleted]),
+        );
 
-      // ── 4. One real delegated job (self-seeded, spec-18 pattern) ──
-      const rid = (
-        await client.yield.resource({
-          name: 'Worker Vitals Lifecycle',
-          storageUri: 'file://e2e/worker-vitals-lifecycle.txt',
-          file: Buffer.from(
-            'Mitochondria generate ATP through oxidative phosphorylation. ' +
-              'The electron transport chain pumps protons across the inner membrane. ' +
-              'ATP synthase converts the proton gradient into chemical energy.',
-            'utf-8',
-          ),
-          format: 'text/plain',
-          language: 'en',
-        })
-      ).resourceId;
+        // ── 4. One real delegated job (self-seeded, spec-18 pattern) ──
+        const rid = (
+          await client.yield.resource({
+            name: 'Worker Vitals Lifecycle',
+            storageUri: 'file://e2e/worker-vitals-lifecycle.txt',
+            file: Buffer.from(
+              'Mitochondria generate ATP through oxidative phosphorylation. ' +
+                'The electron transport chain pumps protons across the inner membrane. ' +
+                'ATP synthase converts the proton gradient into chemical energy.',
+              'utf-8',
+            ),
+            format: 'text/plain',
+            language: 'en',
+          })
+        ).resourceId;
 
-      const done = await client.mark.delegate(rid, { motivation: 'highlighting', sourceLanguage: 'en' });
-      // Awaited, a delegation resolves on the job's completion. A mark job's
-      // result is its counts or a decline; the counts say it did its work.
-      expect(done.result !== undefined && 'found' in done.result, 'the highlighting job reports its counts').toBe(true);
+        const done = await client.mark.delegate(rid, {
+          motivation: 'highlighting',
+          sourceLanguage: 'en',
+        });
+        // Awaited, a delegation resolves on the job's completion. A mark job's
+        // result is its counts or a decline; the counts say it did its work.
+        expect(
+          done.result !== undefined && 'found' in done.result,
+          'the highlighting job reports its counts',
+        ).toBe(true);
 
-      // ── 5. The vitals advanced. Poll: job:complete on the bus and the
-      // adapter's own bookkeeping are near-simultaneous, not ordered. ──
-      await expect
-        .poll(
-          async () => {
-            const e = (await workingEntry(domain)).engines.find((x) => engineKey(x) === highlighterKey);
-            return e !== undefined && e.jobsCompleted > baseCompleted && e.activeJob === null;
-          },
-          {
-            timeout: 30_000,
-            message: `engine ${highlighterKey}: jobsCompleted must pass ${baseCompleted} and activeJob return to null`,
-          },
-        )
-        .toBe(true);
+        // ── 5. The vitals advanced. Poll: job:complete on the bus and the
+        // adapter's own bookkeeping are near-simultaneous, not ordered. ──
+        await expect
+          .poll(
+            async () => {
+              const e = (await workingEntry(domain)).engines.find(
+                (x) => engineKey(x) === highlighterKey,
+              );
+              return (
+                e !== undefined &&
+                e.jobsCompleted > baseCompleted &&
+                e.activeJob === null
+              );
+            },
+            {
+              timeout: 30_000,
+              message: `engine ${highlighterKey}: jobsCompleted must pass ${baseCompleted} and activeJob return to null`,
+            },
+          )
+          .toBe(true);
 
-      const after = await workingEntry(domain);
-      const e = after.engines.find((x) => engineKey(x) === highlighterKey)!;
+        const after = await workingEntry(domain);
+        const e = after.engines.find((x) => engineKey(x) === highlighterKey)!;
 
-      const claimed = epoch(e.lastClaimAt);
-      const finished = epoch(e.lastFinishedAt);
-      expect(claimed, 'the job was claimed for the engine (lastClaimAt set)').not.toBeNull();
-      expect(finished, 'the job was finished with the engine (lastFinishedAt set)').not.toBeNull();
-      expect(finished!, 'claim precedes finish on the worker’s own clock').toBeGreaterThanOrEqual(claimed!);
-      if (baseFinished !== null) {
-        expect(finished!, 'lastFinishedAt advanced past the pre-job value').toBeGreaterThan(baseFinished);
-      }
-      expect(e.lastActivityAt, 'activity freshness populated by the pass').not.toBeNull();
-      expect(
-        e.lastQueuedEventAt,
-        'the claim implies the job:queued announcement was seen (SSE push, no polling)',
-      ).not.toBeNull();
-
-      // ── 6. Monotonicity across every engine ──
-      for (const x of after.engines) {
-        const before = baseByEngine.get(engineKey(x));
-        if (before !== undefined) {
+        const claimed = epoch(e.lastClaimAt);
+        const finished = epoch(e.lastFinishedAt);
+        expect(
+          claimed,
+          'the job was claimed for the engine (lastClaimAt set)',
+        ).not.toBeNull();
+        expect(
+          finished,
+          'the job was finished with the engine (lastFinishedAt set)',
+        ).not.toBeNull();
+        expect(
+          finished!,
+          'claim precedes finish on the worker’s own clock',
+        ).toBeGreaterThanOrEqual(claimed!);
+        if (baseFinished !== null) {
           expect(
-            x.jobsCompleted,
-            `engine ${engineKey(x)}: jobsCompleted is monotonic (process-lifetime counter)`,
-          ).toBeGreaterThanOrEqual(before);
+            finished!,
+            'lastFinishedAt advanced past the pre-job value',
+          ).toBeGreaterThan(baseFinished);
         }
+        expect(
+          e.lastActivityAt,
+          'activity freshness populated by the pass',
+        ).not.toBeNull();
+        expect(
+          e.lastQueuedEventAt,
+          'the claim implies the job:queued announcement was seen (SSE push, no polling)',
+        ).not.toBeNull();
+
+        // ── 6. Monotonicity across every engine ──
+        for (const x of after.engines) {
+          const before = baseByEngine.get(engineKey(x));
+          if (before !== undefined) {
+            expect(
+              x.jobsCompleted,
+              `engine ${engineKey(x)}: jobsCompleted is monotonic (process-lifetime counter)`,
+            ).toBeGreaterThanOrEqual(before);
+          }
+        }
+      } finally {
+        opened.dispose();
       }
-    } finally {
-      opened.dispose();
-    }
-  });
+    },
+  );
 });

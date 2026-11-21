@@ -1,0 +1,46 @@
+# The repository's own tooling: the scripts under scripts/ and e2e/scripts/,
+# and the tests under tests/. Not a package. make test-python checks it as it
+# checks each project, at the tools' versions every project locks.
+[project]
+name = "xynolog-images-tooling"
+version = "0"
+requires-python = ">=3.12"
+
+[dependency-groups]
+dev = ["mypy==2.4.1", "pyright==1.1.414", "ruff==0.17.4", "pytest==9.2.0"]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 140
+include = ["scripts/**/*.py", "e2e/scripts/**/*.py", "tests/**/*.py"]
+# The scripts run on the host's python3, whose floor is 3.9; the tests run in the checks image.
+per-file-target-version = { "scripts/*.py" = "py39", "scripts/test_*.py" = "py312", "e2e/scripts/*.py" = "py39" }
+
+[tool.ruff.lint]
+select = ["ANN", "ASYNC", "B", "C4", "E", "F", "I", "PGH", "PT", "RUF", "SIM", "TID", "UP", "W"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["scripts", "e2e/scripts", "tests"]
+strict = true
+warn_unreachable = true
+enable_error_code = ["explicit-override", "ignore-without-code", "possibly-undefined", "redundant-expr", "truthy-bool"]
+
+[tool.pyright]
+pythonVersion = "3.12"
+include = ["scripts", "e2e/scripts", "tests"]
+typeCheckingMode = "strict"
+enableTypeIgnoreComments = false
+reportUnnecessaryTypeIgnoreComment = "error"
+reportImplicitOverride = "error"
+executionEnvironments = [
+  { root = "e2e/scripts", pythonVersion = "3.9" },
+  { root = "scripts/changed-images.py", pythonVersion = "3.9" },
+  { root = "scripts/image-signature.py", pythonVersion = "3.9" },
+  { root = "scripts/prepare-rust-sdk-artifacts.py", pythonVersion = "3.9" },
+]
+
+[tool.pytest.ini_options]
+testpaths = ["scripts", "tests"]

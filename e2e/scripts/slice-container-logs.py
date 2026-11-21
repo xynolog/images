@@ -62,36 +62,37 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from container_names import resolve_containers
+from json_values import JSON
 
 
 def parse_args() -> argparse.Namespace:
     here = Path(__file__).resolve().parent
-    default_results_dir = here.parent / 'test-results'
+    default_results_dir = here.parent / "test-results"
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument('--results-dir', type=Path, default=default_results_dir,
-                   help='Playwright test-results root (default: e2e/test-results)')
-    p.add_argument('--containers', default='gateway,worker,smelter',
-                   help='Comma-separated containers to slice: full names (xynolog-…) or bare products (default: gateway,worker,smelter)')
-    p.add_argument('--max-lines', type=int, default=0,
-                   help='If >0, pass `-n N` to `container logs` to cap the dump from the tail')
-    p.add_argument('--keep-full', action='store_true',
-                   help='Also write the full pre-slice dump to <container>.full.log per test')
+    p.add_argument("--results-dir", type=Path, default=default_results_dir, help="Playwright test-results root (default: e2e/test-results)")
+    p.add_argument(
+        "--containers",
+        default="gateway,worker,smelter",
+        help="Comma-separated containers to slice: full names (xynolog-…) or bare products (default: gateway,worker,smelter)",
+    )
+    p.add_argument("--max-lines", type=int, default=0, help="If >0, pass `-n N` to `container logs` to cap the dump from the tail")
+    p.add_argument("--keep-full", action="store_true", help="Also write the full pre-slice dump to <container>.full.log per test")
     return p.parse_args()
 
 
 def dump_container_logs(name: str, max_lines: int) -> str | None:
     """Dump full logs from a container. Returns the raw text or None on failure."""
-    cmd = ['container', 'logs']
+    cmd = ["container", "logs"]
     if max_lines > 0:
-        cmd += ['-n', str(max_lines)]
+        cmd += ["-n", str(max_lines)]
     cmd.append(name)
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=False)
     except FileNotFoundError:
-        sys.stderr.write('[slice-logs] `container` CLI not on PATH — is Apple Container installed?\n')
+        sys.stderr.write("[slice-logs] `container` CLI not on PATH — is Apple Container installed?\n")
         return None
     if result.returncode != 0:
-        sys.stderr.write(f'[slice-logs] container logs {name} failed: {result.stderr.strip() or f"(exit {result.returncode})"}\n')
+        sys.stderr.write(f"[slice-logs] container logs {name} failed: {result.stderr.strip() or f'(exit {result.returncode})'}\n")
         return None
     return result.stdout
 
@@ -103,16 +104,16 @@ def slice_by_timestamp(raw: str, start_ms: int, end_ms: int) -> tuple[list[str],
         if not line.strip():
             continue
         try:
-            entry = json.loads(line)
+            entry: JSON = json.loads(line)
         except json.JSONDecodeError:
             continue
-        ts = entry.get('timestamp') if isinstance(entry, dict) else None
+        ts = entry.get("timestamp") if isinstance(entry, dict) else None
         if not isinstance(ts, str):
             continue
         try:
             # ISO 8601, possibly with `Z` suffix. fromisoformat in 3.11+ handles `Z`;
             # earlier versions require explicit replacement.
-            ts_iso = ts.replace('Z', '+00:00')
+            ts_iso = ts.replace("Z", "+00:00")
             ts_dt = datetime.fromisoformat(ts_iso)
             if ts_dt.tzinfo is None:
                 ts_dt = ts_dt.replace(tzinfo=timezone.utc)
@@ -127,14 +128,14 @@ def slice_by_timestamp(raw: str, start_ms: int, end_ms: int) -> tuple[list[str],
 def list_test_dirs(root: Path) -> list[Path]:
     if not root.exists():
         return []
-    return sorted(d for d in root.iterdir() if d.is_dir() and not d.name.startswith('.'))
+    return sorted(d for d in root.iterdir() if d.is_dir() and not d.name.startswith("."))
 
 
 def parse_iso_to_ms(iso: str | None) -> int | None:
     if not isinstance(iso, str):
         return None
     try:
-        dt = datetime.fromisoformat(iso.replace('Z', '+00:00'))
+        dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         return int(dt.timestamp() * 1000)
@@ -144,62 +145,62 @@ def parse_iso_to_ms(iso: str | None) -> int | None:
 
 def main() -> int:
     args = parse_args()
-    containers, skipped = resolve_containers([c.strip() for c in args.containers.split(',') if c.strip()])
+    containers, skipped = resolve_containers([c.strip() for c in args.containers.split(",") if c.strip()])
     for reason in skipped:
-        sys.stderr.write(f'[slice-logs] {reason}\n')
+        sys.stderr.write(f"[slice-logs] {reason}\n")
 
     test_dirs = list_test_dirs(args.results_dir)
     if not test_dirs:
-        sys.stderr.write(f'[slice-logs] no test directories under {args.results_dir} — did you run `npx playwright test` first?\n')
+        sys.stderr.write(f"[slice-logs] no test directories under {args.results_dir} — did you run `npx playwright test` first?\n")
         return 1
 
-    print(f'[slice-logs] results-dir: {args.results_dir}')
-    print(f'[slice-logs] containers:  {", ".join(containers)}')
-    print(f'[slice-logs] test dirs:   {len(test_dirs)}')
+    print(f"[slice-logs] results-dir: {args.results_dir}")
+    print(f"[slice-logs] containers:  {', '.join(containers)}")
+    print(f"[slice-logs] test dirs:   {len(test_dirs)}")
 
     # Dump each container once (an expensive operation), then slice per-test.
     # Avoids re-dumping for every test directory.
     dumps: dict[str, str] = {}
     for name in containers:
-        sys.stderr.write(f'[slice-logs] dumping {name} ... ')
+        sys.stderr.write(f"[slice-logs] dumping {name} ... ")
         raw = dump_container_logs(name, args.max_lines)
         if raw is None:
-            sys.stderr.write('skipped\n')
+            sys.stderr.write("skipped\n")
             continue
         dumps[name] = raw
-        sys.stderr.write(f'{len(raw) / 1024:.1f} KB\n')
+        sys.stderr.write(f"{len(raw) / 1024:.1f} KB\n")
 
     tests_with_evidence = 0
     tests_skipped = 0
     total_lines = 0
 
     for d in test_dirs:
-        summary_path = d / 'jaeger-summary.json'
+        summary_path = d / "jaeger-summary.json"
         if not summary_path.exists():
             tests_skipped += 1
             continue
         try:
             summary = json.loads(summary_path.read_text())
         except (OSError, json.JSONDecodeError) as err:
-            sys.stderr.write(f'[slice-logs] {d.name}: invalid jaeger-summary.json ({err})\n')
+            sys.stderr.write(f"[slice-logs] {d.name}: invalid jaeger-summary.json ({err})\n")
             tests_skipped += 1
             continue
 
-        start_ms = parse_iso_to_ms(summary.get('startedAtIso'))
-        end_ms = parse_iso_to_ms(summary.get('endedAtIso'))
+        start_ms = parse_iso_to_ms(summary.get("startedAtIso"))
+        end_ms = parse_iso_to_ms(summary.get("endedAtIso"))
         if start_ms is None or end_ms is None:
-            sys.stderr.write(f'[slice-logs] {d.name}: jaeger-summary.json missing startedAtIso/endedAtIso\n')
+            sys.stderr.write(f"[slice-logs] {d.name}: jaeger-summary.json missing startedAtIso/endedAtIso\n")
             tests_skipped += 1
             continue
 
         per_test_lines = 0
         for name, raw in dumps.items():
             if args.keep_full:
-                (d / f'{name}.full.log').write_text(raw)
+                (d / f"{name}.full.log").write_text(raw)
             lines, kept = slice_by_timestamp(raw, start_ms, end_ms)
             if not lines:
                 continue
-            (d / f'{name}.log').write_text('\n'.join(lines) + '\n')
+            (d / f"{name}.log").write_text("\n".join(lines) + "\n")
             per_test_lines += kept
 
         if per_test_lines > 0:
@@ -207,11 +208,11 @@ def main() -> int:
             total_lines += per_test_lines
 
     print(
-        f'[slice-logs] done: {tests_with_evidence}/{len(test_dirs)} tests got log slices '
-        f'({total_lines} lines total; {tests_skipped} skipped — no jaeger-summary.json or invalid window)'
+        f"[slice-logs] done: {tests_with_evidence}/{len(test_dirs)} tests got log slices "
+        f"({total_lines} lines total; {tests_skipped} skipped — no jaeger-summary.json or invalid window)"
     )
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

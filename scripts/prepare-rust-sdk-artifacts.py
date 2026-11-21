@@ -18,17 +18,13 @@ def main() -> None:
     bundle = pathlib.Path(sys.argv[1]).resolve()
     output = pathlib.Path(sys.argv[2]).resolve()
     manifest = json.loads((bundle / "artifacts.json").read_text())
-    artifacts = [
-        artifact
-        for artifact in manifest["artifacts"]
-        if artifact["ecosystem"] == "cargo"
-    ]
+    artifacts = [artifact for artifact in manifest["artifacts"] if artifact["ecosystem"] == "cargo"]
     if not artifacts:
         raise SystemExit("SDK artifact bundle contains no Cargo packages")
 
     crates_dir = output / "crates"
     crates_dir.mkdir(parents=True, exist_ok=True)
-    patch_entries = []
+    patch_entries: list[str] = []
     for artifact in sorted(artifacts, key=lambda item: item["package"]):
         name = artifact["package"]
         archive = bundle / artifact["path"]

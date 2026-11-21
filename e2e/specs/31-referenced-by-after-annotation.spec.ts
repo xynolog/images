@@ -32,7 +32,10 @@ test.describe('what refers to a resource, just after an annotation', () => {
       const { resourceId } = await client.yield.resource({
         name: `Referenced-by Doc ${STAMP}`,
         storageUri: `file://e2e/referenced-by-${STAMP}.txt`,
-        file: Buffer.from('A resource whose view grows with each annotation recorded on it.', 'utf-8'),
+        file: Buffer.from(
+          'A resource whose view grows with each annotation recorded on it.',
+          'utf-8',
+        ),
         format: 'text/plain',
         language: 'en',
       });
@@ -41,7 +44,14 @@ test.describe('what refers to a resource, just after an annotation', () => {
       // Librarian has read it at its first length.
       await expect
         .poll(
-          () => client.gather.referencedBy(resourceId).fresh().then(() => 'answered', (error: Error) => error.message),
+          () =>
+            client.gather
+              .referencedBy(resourceId)
+              .fresh()
+              .then(
+                () => 'answered',
+                (error: Error) => error.message,
+              ),
           { timeout: 30_000 },
         )
         .toBe('answered');
@@ -50,7 +60,13 @@ test.describe('what refers to a resource, just after an annotation', () => {
         await client.mark.annotation({
           target: { source: resourceId },
           motivation: 'commenting',
-          body: [{ type: 'TextualBody', value: `Comment ${n} of ${ANNOTATIONS}, ${STAMP}.`, purpose: 'commenting' }],
+          body: [
+            {
+              type: 'TextualBody',
+              value: `Comment ${n} of ${ANNOTATIONS}, ${STAMP}.`,
+              purpose: 'commenting',
+            },
+          ],
         });
         const recordedAt = Date.now();
 

@@ -9,7 +9,9 @@ import { test, expect } from '../fixtures/auth';
  * pass.
  */
 test.describe('sign in', () => {
-  test('signs in with email/password and lands on the knowledge section', async ({ signedInPage: page }) => {
+  test('signs in with email/password and lands on the knowledge section', async ({
+    signedInPage: page,
+  }) => {
     await expect(page).toHaveURL(/\/know\//);
 
     // The authenticated layout renders a Toolbar and Footer that the

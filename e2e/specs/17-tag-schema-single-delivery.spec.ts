@@ -47,7 +47,8 @@ const DEDUP_SCHEMA: TagSchema = {
   tags: [
     {
       name: 'Marker',
-      description: 'A placeholder category; this schema is never applied, only registered.',
+      description:
+        'A placeholder category; this schema is never applied, only registered.',
       examples: ['n/a'],
     },
   ],
@@ -65,10 +66,14 @@ test.describe('frame:tag-schema-added single delivery (BRIDGED ∩ RESOURCE_SCOP
     // query) is what adds RESOURCE_SCOPED_CHANNELS to this connection — the
     // source of a second, scoped delivery for a channel in both sets.
     await page.goto('/en/know/discover');
-    const firstCard = page.getByRole('button', { name: /^open resource:/i }).first();
+    const firstCard = page
+      .getByRole('button', { name: /^open resource:/i })
+      .first();
     await expect(firstCard).toBeVisible({ timeout: 15_000 });
     await firstCard.click();
-    await expect(page.getByText(/loading resource/i)).toBeHidden({ timeout: 30_000 });
+    await expect(page.getByText(/loading resource/i)).toBeHidden({
+      timeout: 30_000,
+    });
     // Let the make-before-break scope reconnect fully settle, so the scoped
     // subscription is live AND the old (global-only) connection is gone before
     // we trigger the event. This keeps us out of the racy reconnect-overlap

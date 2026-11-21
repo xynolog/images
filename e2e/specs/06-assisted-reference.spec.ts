@@ -37,8 +37,11 @@ import { openResourceByName } from '../fixtures/discover';
  * Requires the seeded KB to have the default entity types (incl. Concept).
  */
 test.describe('delegated reference detection', () => {
-  test('selecting an entity type and clicking Annotate dispatches the job AND persists reference annotations', async ({ signedInPage: page, bus }) => {
-    test.setTimeout(120_000);  // includes a real LLM entity-extraction round-trip
+  test('selecting an entity type and clicking Annotate dispatches the job AND persists reference annotations', async ({
+    signedInPage: page,
+    bus,
+  }) => {
+    test.setTimeout(120_000); // includes a real LLM entity-extraction round-trip
 
     // Pin the Concept-dense TEXT seed BY NAME. Discover's first card is
     // data-order-dependent: Discover is newest-first, the seed adds PDFs,
@@ -56,7 +59,9 @@ test.describe('delegated reference detection', () => {
     // delegate section only renders in annotate mode.
     await page.getByRole('button', { name: /^mode$/i }).click();
     await page.getByRole('menuitem', { name: /^annotate$/i }).click();
-    await expect(page.locator('.cm-content').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.cm-content').first()).toBeVisible({
+      timeout: 15_000,
+    });
 
     // Right sidebar → Annotations → References sub-tab, so the delegate
     // section is in the DOM.
@@ -69,9 +74,12 @@ test.describe('delegated reference detection', () => {
 
     // Expand the "Annotate References" collapsible (label has a trailing "›").
     const main = page.getByRole('main');
-    const delegateToggle = main.getByRole('button', { name: /annotate references/i }).first();
+    const delegateToggle = main
+      .getByRole('button', { name: /annotate references/i })
+      .first();
     await expect(delegateToggle).toBeVisible({ timeout: 10_000 });
-    if ((await delegateToggle.getAttribute('aria-expanded')) !== 'true') await delegateToggle.click();
+    if ((await delegateToggle.getAttribute('aria-expanded')) !== 'true')
+      await delegateToggle.click();
 
     // Select the **Concept** entity-type chip (reliably present in the
     // Photosynthesis seed text — see docstring). Among the default types
@@ -87,14 +95,20 @@ test.describe('delegated reference detection', () => {
 
     // Click "Annotate" (✨) — scoped by data attrs to the reference delegate
     // section so we don't hit an identically-labeled button elsewhere.
-    const submitBtn = page.locator('button[data-variant="delegate"][data-type="reference"]');
+    const submitBtn = page.locator(
+      'button[data-variant="delegate"][data-type="reference"]',
+    );
     await expect(submitBtn).toBeVisible({ timeout: 5_000 });
     await expect(submitBtn).toBeEnabled();
     await submitBtn.click();
 
     // (1) Dispatch — the delegated job crossed the wire as a `mark` job of the
     // linking motivation and the gateway acked.
-    const { request } = await bus.expectRequestResponse('job:create', 'job:created', 30_000);
+    const { request } = await bus.expectRequestResponse(
+      'job:create',
+      'job:created',
+      30_000,
+    );
     expect(request.channel).toBe('job:create');
 
     // (2) Outcome — wait for the extracted references to actually persist
@@ -109,7 +123,9 @@ test.describe('delegated reference detection', () => {
     const url = page.url();
     await page.reload();
     await expect(page).toHaveURL(url);
-    await expect(page.getByText(/loading resource/i)).toBeHidden({ timeout: 30_000 });
+    await expect(page.getByText(/loading resource/i)).toBeHidden({
+      timeout: 30_000,
+    });
     await expect
       .poll(async () => referenceEntries.count(), { timeout: 30_000 })
       .toBeGreaterThan(refsBefore);

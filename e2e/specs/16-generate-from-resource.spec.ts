@@ -27,15 +27,22 @@ import { expectGeneratedAt } from '../fixtures/generated';
  * Requires: the seeded KB has the default entity types (for the entity-type exclusion).
  */
 test.describe('generate from resource', () => {
-  test('Generate button → gather round-trips → generation yields a derived resource', async ({ signedInPage: page, bus }) => {
+  test('Generate button → gather round-trips → generation yields a derived resource', async ({
+    signedInPage: page,
+    bus,
+  }) => {
     test.setTimeout(180_000);
 
     // Open the first resource.
     await page.goto('/en/know/discover');
-    const firstCard = page.getByRole('button', { name: /^open resource:/i }).first();
+    const firstCard = page
+      .getByRole('button', { name: /^open resource:/i })
+      .first();
     await expect(firstCard).toBeVisible({ timeout: 15_000 });
     await firstCard.click();
-    await expect(page.getByText(/loading resource/i)).toBeHidden({ timeout: 30_000 });
+    await expect(page.getByText(/loading resource/i)).toBeHidden({
+      timeout: 30_000,
+    });
 
     // ── Resource Info panel: the terse `Generate` button renders ABOVE Clone ──
     await page.locator('button[data-panel="info"]').click();
@@ -43,13 +50,16 @@ test.describe('generate from resource', () => {
     await expect(infoPanel).toBeVisible({ timeout: 10_000 });
     // The DelegateShell adds a collapsible "Generate ›" section header, so match
     // the ✨ prefix — literal in ResourceInfoPanel, unlike the translated word.
-    const generateBtn = infoPanel.getByRole('button', { name: /✨.*generate/i });
+    const generateBtn = infoPanel.getByRole('button', {
+      name: /✨.*generate/i,
+    });
     const cloneBtn = infoPanel.getByRole('button', { name: /clone/i });
     await expect(generateBtn).toBeVisible();
     await expect(cloneBtn).toBeVisible();
     const genBox = await generateBtn.boundingBox();
     const cloneBox = await cloneBtn.boundingBox();
-    if (!genBox || !cloneBox) throw new Error('Generate/Clone button has no bounding box');
+    if (!genBox || !cloneBox)
+      throw new Error('Generate/Clone button has no bounding box');
     expect(genBox.y, 'Generate renders above Clone').toBeLessThan(cloneBox.y);
 
     // ── Click Generate → the modal opens as ONE composite stack ──
@@ -70,7 +80,10 @@ test.describe('generate from resource', () => {
     const firstChip = recallChips.first();
     await expect(firstChip).toHaveAttribute('data-included', 'true');
     await firstChip.click();
-    await expect(firstChip, 'clicking a recall chip EXCLUDES that type').toHaveAttribute('data-included', 'false');
+    await expect(
+      firstChip,
+      'clicking a recall chip EXCLUDES that type',
+    ).toHaveAttribute('data-included', 'false');
     // (The selected type rides into the `gather` call as excludeEntityTypes; the
     //  recall-omission effect is LLM-output-dependent, so we assert the threading
     //  via the UI selection + the gather round-trip below, not the recall contents.)
@@ -79,7 +92,11 @@ test.describe('generate from resource', () => {
 
     // ── Gather → real gather.resource round-trips, evidence unfolds in place ──
     await modal.getByRole('button', { name: /gather/i }).click();
-    await bus.expectRequestResponse('gather:resource-requested', 'gather:resource-complete', 60_000);
+    await bus.expectRequestResponse(
+      'gather:resource-requested',
+      'gather:resource-complete',
+      60_000,
+    );
 
     // The spent controls fold into a receipt, gated on `gatherFired`.
     const receipt = modal.locator('.xynolog-gather-receipt');
@@ -93,8 +110,12 @@ test.describe('generate from resource', () => {
     // The fold: gather at the top, generation params at the bottom.
     const receiptBox = await receipt.boundingBox();
     const paramsBox = await titleInput.boundingBox();
-    if (!receiptBox || !paramsBox) throw new Error('receipt/params has no bounding box');
-    expect(receiptBox.y, 'gather receipt sits above the generation params').toBeLessThan(paramsBox.y);
+    if (!receiptBox || !paramsBox)
+      throw new Error('receipt/params has no bounding box');
+    expect(
+      receiptBox.y,
+      'gather receipt sits above the generation params',
+    ).toBeLessThan(paramsBox.y);
 
     // No Back in a single stack.
     await expect(modal.getByRole('button', { name: /^back$/i })).toHaveCount(0);
@@ -117,16 +138,33 @@ test.describe('generate from resource', () => {
     // Same job lifecycle as spec 09 (the one follower): job:create
     // (jobType yield) → job:created → job:complete (carrying the new
     // result.resourceId; the worker also mints the source→derived provenance ref).
-    await modal.getByRole('button', { name: /generate/i }).last().click();
+    await modal
+      .getByRole('button', { name: /generate/i })
+      .last()
+      .click();
 
-    const { request: createReq } = await bus.expectRequestResponse('job:create', 'job:created', 30_000);
-    expect(createReq.cid, 'generation job:create must carry a correlationId').toBeTruthy();
+    const { request: createReq } = await bus.expectRequestResponse(
+      'job:create',
+      'job:created',
+      30_000,
+    );
+    expect(
+      createReq.cid,
+      'generation job:create must carry a correlationId',
+    ).toBeTruthy();
 
     const outcome = await Promise.race([
-      bus.waitForRecv('job:complete', { timeout: 120_000 }).then((e) => ({ kind: 'complete' as const, entry: e })),
-      bus.waitForRecv('job:fail', { timeout: 120_000 }).then((e) => ({ kind: 'fail' as const, entry: e })),
+      bus
+        .waitForRecv('job:complete', { timeout: 120_000 })
+        .then((e) => ({ kind: 'complete' as const, entry: e })),
+      bus
+        .waitForRecv('job:fail', { timeout: 120_000 })
+        .then((e) => ({ kind: 'fail' as const, entry: e })),
     ]);
-    expect(outcome.kind, 'generation produced job:complete (a new derived resource), not job:fail').toBe('complete');
+    expect(
+      outcome.kind,
+      'generation produced job:complete (a new derived resource), not job:fail',
+    ).toBe('complete');
 
     // ── The artifact is where the form said ────────────────────────────────
     // `job:complete` only proves the worker finished: a worker that reads the

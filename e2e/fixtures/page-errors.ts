@@ -88,12 +88,16 @@ export async function attachPageErrorsArtifact(
 ): Promise<void> {
   if (capture.entries.length === 0) return;
 
-  const body = JSON.stringify({
-    test: testInfo.title,
-    count: capture.entries.length,
-    failOnErrors: FAIL_ON_ERRORS,
-    entries: capture.entries,
-  }, null, 2);
+  const body = JSON.stringify(
+    {
+      test: testInfo.title,
+      count: capture.entries.length,
+      failOnErrors: FAIL_ON_ERRORS,
+      entries: capture.entries,
+    },
+    null,
+    2,
+  );
 
   await testInfo.attach('page-errors.json', {
     body,
@@ -101,10 +105,13 @@ export async function attachPageErrorsArtifact(
   });
 
   if (FAIL_ON_ERRORS) {
-    const summary = capture.entries.slice(0, 3).map((e) => `  [${e.kind}] ${e.message}`).join('\n');
+    const summary = capture.entries
+      .slice(0, 3)
+      .map((e) => `  [${e.kind}] ${e.message}`)
+      .join('\n');
     throw new Error(
       `Page surfaced ${capture.entries.length} uncaught error(s) during the test:\n${summary}\n\n` +
-      `(see attached page-errors.json for the full list and stacks)`,
+        `(see attached page-errors.json for the full list and stacks)`,
     );
   }
 }

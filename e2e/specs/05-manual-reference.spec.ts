@@ -46,7 +46,11 @@ const SEED = 'Quantum Computing Primer';
  * Returns the reference-entry locator and its pre-selection count, so the
  * caller can assert growth.
  */
-async function selectTextInReferenceMode(page: Page, bus: BusLogCapture, startAt = 0) {
+async function selectTextInReferenceMode(
+  page: Page,
+  bus: BusLogCapture,
+  startAt = 0,
+) {
   await openResourceByName(page, SEED);
 
   // Baseline reference count for growth assertion.
@@ -78,7 +82,9 @@ async function selectTextInReferenceMode(page: Page, bus: BusLogCapture, startAt
   await page.getByRole('menuitem', { name: /^reference$/i }).click();
   // Confirm the toolbar picked it up before proceeding.
   await expect(
-    page.getByRole('button', { name: /^motivation$/i }).filter({ hasText: /reference/i })
+    page
+      .getByRole('button', { name: /^motivation$/i })
+      .filter({ hasText: /reference/i }),
   ).toBeVisible({ timeout: 5_000 });
 
   // Adaptive selection — same shape as test 04. Short resources like
@@ -95,12 +101,17 @@ async function selectTextInReferenceMode(page: Page, bus: BusLogCapture, startAt
       totalChars += node.nodeValue?.length ?? 0;
     }
     if (totalChars < 2) {
-      throw new Error(`content area has only ${totalChars} chars; cannot select`);
+      throw new Error(
+        `content area has only ${totalChars} chars; cannot select`,
+      );
     }
     // Clamp: a short resource may not reach `from` at all, in which case fall
     // back to the head rather than failing on an offset the seed cannot honour.
     const begin = Math.min(from, Math.max(0, totalChars - 2));
-    const targetLen = Math.min(10, Math.max(2, Math.floor((totalChars - begin) / 2)));
+    const targetLen = Math.min(
+      10,
+      Math.max(2, Math.floor((totalChars - begin) / 2)),
+    );
     const end = begin + targetLen;
 
     /** Resolve an absolute character offset to a (node, offset) pair. */
@@ -116,7 +127,8 @@ async function selectTextInReferenceMode(page: Page, bus: BusLogCapture, startAt
 
     const start = locate(begin);
     const stop = locate(end);
-    if (!start || !stop) throw new Error('walker could not resolve selection boundaries');
+    if (!start || !stop)
+      throw new Error('walker could not resolve selection boundaries');
     const range = document.createRange();
     range.setStart(start.node, start.offset);
     range.setEnd(stop.node, stop.offset);
@@ -141,8 +153,14 @@ async function createReference(page: Page) {
 }
 
 test.describe('manual reference', () => {
-  test('selecting text in annotate+reference mode with an entity type creates a persisted reference', async ({ signedInPage: page, bus }) => {
-    const { referenceEntries, refsBefore } = await selectTextInReferenceMode(page, bus);
+  test('selecting text in annotate+reference mode with an entity type creates a persisted reference', async ({
+    signedInPage: page,
+    bus,
+  }) => {
+    const { referenceEntries, refsBefore } = await selectTextInReferenceMode(
+      page,
+      bus,
+    );
 
     // The ReferencesPanel inline prompt renders once a pendingAnnotation
     // with motivation='linking' appears. Within it, `.xynolog-tag-selector__item`
@@ -157,7 +175,11 @@ test.describe('manual reference', () => {
 
     // Protocol-level proof: the create chain round-tripped. This is the
     // same guarantee test 04 asserts for highlights.
-    await bus.expectRequestResponse('mark:create-request', 'mark:create-ok', 30_000);
+    await bus.expectRequestResponse(
+      'mark:create-request',
+      'mark:create-ok',
+      30_000,
+    );
 
     // UI-level growth: the references list grew. Exact DOM-count is not
     // asserted — one logical reference may render as several nodes with
@@ -170,29 +192,45 @@ test.describe('manual reference', () => {
     const urlBeforeReload = page.url();
     await page.reload();
     await expect(page).toHaveURL(urlBeforeReload);
-    await expect(page.getByText(/loading resource/i)).toBeHidden({ timeout: 30_000 });
+    await expect(page.getByText(/loading resource/i)).toBeHidden({
+      timeout: 30_000,
+    });
 
     await expect
       .poll(async () => referenceEntries.count(), { timeout: 30_000 })
       .toBeGreaterThan(refsBefore);
   });
 
-  test('creating a reference with NO entity type selected is accepted, not silently refused', async ({ signedInPage: page, bus }) => {
+  test('creating a reference with NO entity type selected is accepted, not silently refused', async ({
+    signedInPage: page,
+    bus,
+  }) => {
     // Offset past the range the first test claims, so the two never contend.
-    const { referenceEntries, refsBefore } = await selectTextInReferenceMode(page, bus, 40);
+    const { referenceEntries, refsBefore } = await selectTextInReferenceMode(
+      page,
+      bus,
+      40,
+    );
 
     // Wait for the prompt, then touch NOTHING. Entity types are optional and
     // this is the path that says so.
     const tagChips = page.locator('.xynolog-tag-selector__item');
     await expect(tagChips.first()).toBeVisible({ timeout: 10_000 });
-    await expect(tagChips.first(), 'no type is pre-selected').toHaveAttribute('data-selected', 'false');
+    await expect(tagChips.first(), 'no type is pre-selected').toHaveAttribute(
+      'data-selected',
+      'false',
+    );
 
     await createReference(page);
 
     // The whole point. With `body: []` this never arrives: `/bus/emit`
     // answers 400 ("must NOT have fewer than 1 items") and the fire-and-forget
     // submit swallows it, so the only visible symptom is nothing happening.
-    await bus.expectRequestResponse('mark:create-request', 'mark:create-ok', 30_000);
+    await bus.expectRequestResponse(
+      'mark:create-request',
+      'mark:create-ok',
+      30_000,
+    );
 
     await expect
       .poll(async () => referenceEntries.count(), { timeout: 30_000 })

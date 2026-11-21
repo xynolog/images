@@ -64,60 +64,85 @@ async function openScannedPdfInAnnotateMode(page: Page) {
 }
 
 async function selectSubTab(page: Page, emoji: string) {
-  const tab = page.locator('.xynolog-unified-panel__tabs').getByRole('button', { name: emoji, exact: true });
+  const tab = page
+    .locator('.xynolog-unified-panel__tabs')
+    .getByRole('button', { name: emoji, exact: true });
   await expect(tab).toBeVisible({ timeout: 10_000 });
   if ((await tab.getAttribute('aria-pressed')) !== 'true') await tab.click();
   await expect(tab).toHaveAttribute('aria-pressed', 'true');
 }
 
 test.describe('delegated detection on an unreadable scanned PDF', () => {
-  test('completes with a decline notice and creates no annotations', { tag: ['@model'] }, async ({ signedInPage: page, bus }) => {
-    test.setTimeout(120_000);
+  test(
+    'completes with a decline notice and creates no annotations',
+    { tag: ['@model'] },
+    async ({ signedInPage: page, bus }) => {
+      test.setTimeout(120_000);
 
-    await openScannedPdfInAnnotateMode(page);
-    const rects = page.locator(`${SVG} rect`);
-    const rectsBefore = await rects.count();
+      await openScannedPdfInAnnotateMode(page);
+      const rects = page.locator(`${SVG} rect`);
+      const rectsBefore = await rects.count();
 
-    await selectSubTab(page, '💬');
-    const main = page.getByRole('main');
-    const toggle = main.getByRole('button', { name: /annotate comments/i }).first();
-    await expect(toggle).toBeVisible({ timeout: 10_000 });
-    if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+      await selectSubTab(page, '💬');
+      const main = page.getByRole('main');
+      const toggle = main
+        .getByRole('button', { name: /annotate comments/i })
+        .first();
+      await expect(toggle).toBeVisible({ timeout: 10_000 });
+      if ((await toggle.getAttribute('aria-expanded')) !== 'true')
+        await toggle.click();
 
-    bus.clear();
-    const submit = page.locator('button[data-variant="delegate"][data-type="comment"]');
-    await expect(submit).toBeEnabled({ timeout: 5_000 });
-    await submit.click();
-
-    // Dispatch — the delegated job crosses the wire like any other detection job. The
-    // decline happens in the worker, after it tries to read the page.
-    const { request } = await bus.expectRequestResponse('job:create', 'job:created', 30_000);
-    expect(request.channel).toBe('job:create');
-
-    // (1) the job COMPLETES rather than failing. Race the two so a genuine
-    // failure surfaces with its message instead of a bare timeout (09's
-    // pattern). A decline is not an error — `job:fail` here would mean the
-    // worker throws on an unreadable page.
-    const completeOrFail = await Promise.race([
-      bus.waitForRecv('job:complete', { timeout: 90_000 }).then((e) => ({ kind: 'complete' as const, entry: e })),
-      bus.waitForRecv('job:fail', { timeout: 90_000 }).then((e) => ({ kind: 'fail' as const, entry: e })),
-    ]);
-    if (completeOrFail.kind === 'fail') {
-      throw new Error(
-        'Expected job:complete (a decline), got job:fail. Recent bus entries:\n' +
-        bus.entries.slice(-15).map((e) => `  [${e.op}] ${e.channel} ${e.raw}`).join('\n'),
+      bus.clear();
+      const submit = page.locator(
+        'button[data-variant="delegate"][data-type="comment"]',
       );
-    }
+      await expect(submit).toBeEnabled({ timeout: 5_000 });
+      await submit.click();
 
-    // (2) the user is told why, as INFO. The bus log records only a payload
-    // prefix, so the *reason* is asserted where it actually reaches a
-    // human — the toast from `decline_no-text-layer` (en.json). Matched loosely:
-    // the copy uses a curly apostrophe in "couldn’t", which is not worth pinning.
-    await expect(page.getByText(/scan whose text.*recognized/i))
-      .toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/annotation complete/i)).toBeHidden();
+      // Dispatch — the delegated job crosses the wire like any other detection job. The
+      // decline happens in the worker, after it tries to read the page.
+      const { request } = await bus.expectRequestResponse(
+        'job:create',
+        'job:created',
+        30_000,
+      );
+      expect(request.channel).toBe('job:create');
 
-    // (3) the point: nothing was invented from text the recognizer never read.
-    await expect.poll(async () => rects.count(), { timeout: 10_000 }).toBe(rectsBefore);
-  });
+      // (1) the job COMPLETES rather than failing. Race the two so a genuine
+      // failure surfaces with its message instead of a bare timeout (09's
+      // pattern). A decline is not an error — `job:fail` here would mean the
+      // worker throws on an unreadable page.
+      const completeOrFail = await Promise.race([
+        bus
+          .waitForRecv('job:complete', { timeout: 90_000 })
+          .then((e) => ({ kind: 'complete' as const, entry: e })),
+        bus
+          .waitForRecv('job:fail', { timeout: 90_000 })
+          .then((e) => ({ kind: 'fail' as const, entry: e })),
+      ]);
+      if (completeOrFail.kind === 'fail') {
+        throw new Error(
+          'Expected job:complete (a decline), got job:fail. Recent bus entries:\n' +
+            bus.entries
+              .slice(-15)
+              .map((e) => `  [${e.op}] ${e.channel} ${e.raw}`)
+              .join('\n'),
+        );
+      }
+
+      // (2) the user is told why, as INFO. The bus log records only a payload
+      // prefix, so the *reason* is asserted where it actually reaches a
+      // human — the toast from `decline_no-text-layer` (en.json). Matched loosely:
+      // the copy uses a curly apostrophe in "couldn’t", which is not worth pinning.
+      await expect(page.getByText(/scan whose text.*recognized/i)).toBeVisible({
+        timeout: 15_000,
+      });
+      await expect(page.getByText(/annotation complete/i)).toBeHidden();
+
+      // (3) the point: nothing was invented from text the recognizer never read.
+      await expect
+        .poll(async () => rects.count(), { timeout: 10_000 })
+        .toBe(rectsBefore);
+    },
+  );
 });

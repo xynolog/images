@@ -11,9 +11,9 @@ function requireEnv(name: string): string {
     // eslint-disable-next-line no-console
     console.error(
       `\n[e2e] Missing required env var: ${name}\n` +
-      `      Export it before running, e.g.:\n` +
-      `        export ${name}=...\n` +
-      `      See e2e/README.md for the full list.\n`,
+        `      Export it before running, e.g.:\n` +
+        `        export ${name}=...\n` +
+        `      See e2e/README.md for the full list.\n`,
     );
     process.exit(1);
   }
@@ -21,11 +21,13 @@ function requireEnv(name: string): string {
 }
 
 // The Browser the tests drive. Default matches the local container exposure.
-export const BROWSER_URL = process.env.E2E_BROWSER_URL ?? 'http://localhost:3000';
+export const BROWSER_URL =
+  process.env.E2E_BROWSER_URL ?? 'http://localhost:3000';
 
 // Gateway the Browser points at. Separate from BROWSER_URL because the
 // sign-in form asks for host/port/protocol explicitly.
-export const GATEWAY_URL = process.env.E2E_GATEWAY_URL ?? 'http://localhost:4000';
+export const GATEWAY_URL =
+  process.env.E2E_GATEWAY_URL ?? 'http://localhost:4000';
 
 // Credentials for the sign-in flow. Required — no defaults so tests can't
 // accidentally hit a shared account.
@@ -36,9 +38,9 @@ export default defineConfig({
   testDir: './specs',
   timeout: 60_000,
   expect: { timeout: 15_000 },
-  fullyParallel: false,  // Single worker until tests + fixtures are isolated.
+  fullyParallel: false, // Single worker until tests + fixtures are isolated.
   workers: 1,
-  retries: 0,            // Flakes should be diagnosed, not retried away.
+  retries: 0, // Flakes should be diagnosed, not retried away.
   reporter: [['list'], ['html', { open: 'never' }]],
   // Seed the KB with the minimum fixtures the suite assumes (≥2
   // resources). Idempotent — re-runs against an already-seeded KB
@@ -53,7 +55,5 @@ export default defineConfig({
     actionTimeout: 10_000,
     navigationTimeout: 30_000,
   },
-  projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-  ],
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 });

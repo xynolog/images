@@ -21,5 +21,6 @@ It checks the job queue and removes a successful run; a failed run stays availab
 for diagnosis until `down` removes it. `down` stops the stack and restores the
 launcher-managed service documents.
 
-Run `python3 -m unittest discover -s tests/stack -p 'test_*.py' -v` to check the
-smoke script against stand-ins without starting containers.
+`make test-python` checks the smoke script against stand-ins without starting
+containers, with the repository's other Python (`scripts/test-python.sh .` runs
+only that).

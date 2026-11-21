@@ -2,7 +2,11 @@ import { test as base, expect, type Page } from '@playwright/test';
 import { GATEWAY_URL, E2E_EMAIL, E2E_PASSWORD } from '../playwright.config';
 import { attachBusLog, type BusLogCapture } from './bus-log';
 import { JaegerCapture, attachJaegerEvidence } from './jaeger';
-import { attachPageErrors, attachPageErrorsArtifact, type PageErrorsCapture } from './page-errors';
+import {
+  attachPageErrors,
+  attachPageErrorsArtifact,
+  type PageErrorsCapture,
+} from './page-errors';
 
 /**
  * Sign in via the real UI: Connect → host/port → the issuer's login page →
@@ -126,7 +130,10 @@ export const test = base.extend<{
     await use(capture);
     await attachJaegerEvidence(testInfo, bus, capture);
   },
-  signedInPage: async ({ page, bus: _bus, jaeger: _jaeger, pageErrors: _pageErrors }, use) => {
+  signedInPage: async (
+    { page, bus: _bus, jaeger: _jaeger, pageErrors: _pageErrors },
+    use,
+  ) => {
     // Depend on `bus` and `jaeger` so the init scripts run before signIn
     // and the Jaeger teardown sees the full test window. The unused
     // parameters force fixture ordering.

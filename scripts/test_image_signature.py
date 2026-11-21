@@ -5,18 +5,25 @@ import json
 import tempfile
 import threading
 import unittest
+from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import override
+from urllib.parse import unquote
 
-SPEC = importlib.util.spec_from_file_location(
-    "image_signature", Path(__file__).with_name("image-signature.py")
-)
+import pytest
+
+SPEC = importlib.util.spec_from_file_location("image_signature", Path(__file__).with_name("image-signature.py"))
+if SPEC is None or SPEC.loader is None:
+    raise ImportError("scripts/image-signature.py cannot be loaded")
 image_signature = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(image_signature)
+signature_of: Callable[[Path, Path, str, str, str], str] = image_signature.signature
 
 
 class SignatureTest(unittest.TestCase):
-    def setUp(self):
+    @override
+    def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
@@ -24,25 +31,23 @@ class SignatureTest(unittest.TestCase):
         self.dockerfile.write_text("FROM scratch\nCOPY source.txt /source.txt\n")
         (self.root / "source.txt").write_text("first")
 
-    def signature(self, registry="http://127.0.0.1:1", rust="rust", python="python"):
-        return image_signature.signature(
-            self.root, self.dockerfile, registry, rust, python
-        )
+    def signature(self, registry: str = "http://127.0.0.1:1", rust: str = "rust", python: str = "python") -> str:
+        return signature_of(self.root, self.dockerfile, registry, rust, python)
 
-    def test_copy_inputs_dockerfile_and_toolchain_all_invalidate(self):
+    def test_copy_inputs_dockerfile_and_toolchain_all_invalidate(self) -> None:
         before = self.signature()
         (self.root / "source.txt").write_text("second")
-        self.assertNotEqual(self.signature(), before)
+        assert self.signature() != before
         before = self.signature()
         self.dockerfile.write_text(self.dockerfile.read_text() + "ARG RUST_TOOLCHAIN\n")
-        self.assertNotEqual(self.signature(), before)
-        self.assertNotEqual(self.signature(rust="new"), self.signature(rust="old"))
-        with self.assertRaises(FileNotFoundError):
-            (self.root / "source.txt").unlink()
+        assert self.signature() != before
+        assert self.signature(rust="new") != self.signature(rust="old")
+        (self.root / "source.txt").unlink()
+        with pytest.raises(FileNotFoundError):
             self.signature()
 
-    def test_transitive_npm_integrity_changes_without_a_version_bump(self):
-        packages = {
+    def test_transitive_npm_integrity_changes_without_a_version_bump(self) -> None:
+        packages: dict[str, dict[str, dict[str, str]]] = {
             "@xynolog/app": {
                 "dist": {"integrity": "app"},
                 "dependencies": {"@xynolog/core": "*"},
@@ -51,9 +56,7 @@ class SignatureTest(unittest.TestCase):
         }
 
         class Registry(BaseHTTPRequestHandler):
-            def do_GET(self):
-                from urllib.parse import unquote
-
+            def do_GET(self) -> None:
                 package = packages.get(unquote(self.path.lstrip("/")))
                 if package is None:
                     self.send_error(404)
@@ -68,7 +71,8 @@ class SignatureTest(unittest.TestCase):
                 self.end_headers()
                 self.wfile.write(body)
 
-            def log_message(self, *_args):
+            @override
+            def log_message(self, format: str, *args: object) -> None:
                 pass
 
         server = ThreadingHTTPServer(("127.0.0.1", 0), Registry)
@@ -79,9 +83,9 @@ class SignatureTest(unittest.TestCase):
             address = f"http://127.0.0.1:{server.server_port}"
             before = self.signature(registry=address)
             packages["@xynolog/core"]["dist"]["integrity"] = "second"
-            self.assertNotEqual(self.signature(registry=address), before)
+            assert self.signature(registry=address) != before
             del packages["@xynolog/core"]
-            self.assertEqual(self.signature(registry=address), "")
+            assert self.signature(registry=address) == ""
         finally:
             server.shutdown()
             server.server_close()

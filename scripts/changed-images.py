@@ -58,9 +58,9 @@ def git(*arguments: str) -> str:
 
 def in_tree(path: str, tracked: list[str], submodules: list[str]) -> bool:
     """Whether git holds the path: a tracked file, a directory of them, or a path inside a submodule."""
-    return (path in tracked
-            or any(each.startswith(path + "/") for each in tracked)
-            or any(path.startswith(each + "/") for each in submodules))
+    return (
+        path in tracked or any(each.startswith(path + "/") for each in tracked) or any(path.startswith(each + "/") for each in submodules)
+    )
 
 
 def copied_paths(image: str, tracked: list[str], submodules: list[str]) -> list[str]:
@@ -106,16 +106,17 @@ def main() -> None:
     if sorted(every) != sorted(language_of):
         raise SystemExit(f"IMAGE_NAMES {every} is not the union of {sorted(SHARED_ROOT)}")
 
-    known_base = bool(base.strip("0")) and subprocess.run(
-        ["git", "-C", str(ROOT), "cat-file", "-e", f"{base}^{{commit}}"], capture_output=True
-    ).returncode == 0
+    known_base = (
+        bool(base.strip("0"))
+        and subprocess.run(["git", "-C", str(ROOT), "cat-file", "-e", f"{base}^{{commit}}"], capture_output=True).returncode == 0
+    )
     if known_base:
         changed = git("diff", "--name-only", f"{base}...{head}").split()
     else:
         print(f"No base commit to compare with ({base or 'none'}): every image is affected", file=sys.stderr)
         changed = []
 
-    affected = []
+    affected: list[str] = []
     for image in every:
         inputs = copied_paths(image, tracked, submodules) + SHARED_ROOT[language_of[image]] + EVERY_BUILD
         hits = sorted({path for path in changed for each in inputs if touches(path, each)})
@@ -125,8 +126,9 @@ def main() -> None:
 
     rust = [image for image in affected if language_of[image] == "RUST_IMAGES"]
     rest = [image for image in affected if language_of[image] != "RUST_IMAGES"]
-    groups = [{"name": name, "images": " ".join(images)}
-              for name, images in (("the Rust images", rust), ("the other images", rest)) if images]
+    groups = [
+        {"name": name, "images": " ".join(images)} for name, images in (("the Rust images", rust), ("the other images", rest)) if images
+    ]
     print(json.dumps(groups))
 
 

@@ -36,68 +36,95 @@ import { openConfigureStep, runGeneration } from '../fixtures/generate';
  */
 
 test.describe('generate output format', () => {
-  test('a mismatched extension is refused, and text/plain yields a text/plain resource at the typed path', { tag: ['@model'] }, async ({ signedInPage: page, bus }) => {
-    test.setTimeout(180_000);
+  test(
+    'a mismatched extension is refused, and text/plain yields a text/plain resource at the typed path',
+    { tag: ['@model'] },
+    async ({ signedInPage: page, bus }) => {
+      test.setTimeout(180_000);
 
-    const modal = await openConfigureStep(page, bus);
-    const runId = Date.now();
-    const title = `e2e-spec-26-plain-${runId}`;
-    const storagePath = `generated/e2e-26-${runId}.txt`;
+      const modal = await openConfigureStep(page, bus);
+      const runId = Date.now();
+      const title = `e2e-spec-26-plain-${runId}`;
+      const storagePath = `generated/e2e-26-${runId}.txt`;
 
-    await modal.locator('#wizard-title').fill(title);
-    const pathInput = modal.locator('#wizard-storagePath');
-    const formatSelect = modal.locator('#wizard-outputFormat');
-    const generateBtn = modal.getByRole('button', { name: /generate/i }).last();
+      await modal.locator('#wizard-title').fill(title);
+      const pathInput = modal.locator('#wizard-storagePath');
+      const formatSelect = modal.locator('#wizard-outputFormat');
+      const generateBtn = modal
+        .getByRole('button', { name: /generate/i })
+        .last();
 
-    // ── PDF selected, `.md` typed → refused inline, action disabled ────────
-    // The message is i18n'd, so assert the element (`#wizard-format-mismatch`,
-    // role=alert) and the aria wiring rather than its words.
-    //
-    // ORDER IS LOAD-BEARING. An untouched Save location is PROPOSED
-    // from the title + format, and a proposal always matches — the
-    // refusal is reachable only on a hand-edited path. Filling the path FIRST
-    // is what makes it hand-edited; select PDF first and the proposal would
-    // rewrite the extension to .pdf, no mismatch would exist, and every
-    // assertion below would silently test nothing. (Spec 27 pins the
-    // untouched-proposal behavior itself.)
-    await pathInput.fill(`generated/e2e-26-${runId}.md`);
-    await formatSelect.selectOption('application/pdf');
+      // ── PDF selected, `.md` typed → refused inline, action disabled ────────
+      // The message is i18n'd, so assert the element (`#wizard-format-mismatch`,
+      // role=alert) and the aria wiring rather than its words.
+      //
+      // ORDER IS LOAD-BEARING. An untouched Save location is PROPOSED
+      // from the title + format, and a proposal always matches — the
+      // refusal is reachable only on a hand-edited path. Filling the path FIRST
+      // is what makes it hand-edited; select PDF first and the proposal would
+      // rewrite the extension to .pdf, no mismatch would exist, and every
+      // assertion below would silently test nothing. (Spec 27 pins the
+      // untouched-proposal behavior itself.)
+      await pathInput.fill(`generated/e2e-26-${runId}.md`);
+      await formatSelect.selectOption('application/pdf');
 
-    const mismatch = modal.locator('#wizard-format-mismatch');
-    await expect(mismatch, 'a format/extension mismatch says why, inline').toBeVisible();
-    await expect(mismatch).toHaveAttribute('role', 'alert');
-    await expect(pathInput, 'the Save location field is the one marked invalid').toHaveAttribute('aria-invalid', 'true');
-    await expect(pathInput).toHaveAttribute('aria-describedby', 'wizard-format-mismatch');
-    await expect(generateBtn, 'the refusal disables the primary action').toBeDisabled();
+      const mismatch = modal.locator('#wizard-format-mismatch');
+      await expect(
+        mismatch,
+        'a format/extension mismatch says why, inline',
+      ).toBeVisible();
+      await expect(mismatch).toHaveAttribute('role', 'alert');
+      await expect(
+        pathInput,
+        'the Save location field is the one marked invalid',
+      ).toHaveAttribute('aria-invalid', 'true');
+      await expect(pathInput).toHaveAttribute(
+        'aria-describedby',
+        'wizard-format-mismatch',
+      );
+      await expect(
+        generateBtn,
+        'the refusal disables the primary action',
+      ).toBeDisabled();
 
-    // ── Correct the pair → the refusal clears and submission is allowed ────
-    await formatSelect.selectOption('text/plain');
-    await pathInput.fill(storagePath);
-    await expect(mismatch).toHaveCount(0);
-    await expect(pathInput).toHaveAttribute('aria-invalid', 'false');
-    await expect(generateBtn).toBeEnabled();
+      // ── Correct the pair → the refusal clears and submission is allowed ────
+      await formatSelect.selectOption('text/plain');
+      await pathInput.fill(storagePath);
+      await expect(mismatch).toHaveCount(0);
+      await expect(pathInput).toHaveAttribute('aria-invalid', 'false');
+      await expect(generateBtn).toBeEnabled();
 
-    await runGeneration(modal, bus, 120_000);
-    await expectGeneratedAt(title, storagePath, 'text/plain');
-  });
+      await runGeneration(modal, bus, 120_000);
+      await expectGeneratedAt(title, storagePath, 'text/plain');
+    },
+  );
 
-  test('application/pdf yields a PDF resource at the typed path', { tag: ['@model'] }, async ({ signedInPage: page, bus }) => {
-    test.setTimeout(240_000);
+  test(
+    'application/pdf yields a PDF resource at the typed path',
+    { tag: ['@model'] },
+    async ({ signedInPage: page, bus }) => {
+      test.setTimeout(240_000);
 
-    const modal = await openConfigureStep(page, bus);
-    const runId = Date.now();
-    const title = `e2e-spec-26-pdf-${runId}`;
-    const storagePath = `generated/e2e-26-${runId}.pdf`;
+      const modal = await openConfigureStep(page, bus);
+      const runId = Date.now();
+      const title = `e2e-spec-26-pdf-${runId}`;
+      const storagePath = `generated/e2e-26-${runId}.pdf`;
 
-    await modal.locator('#wizard-title').fill(title);
-    await modal.locator('#wizard-outputFormat').selectOption('application/pdf');
-    await modal.locator('#wizard-storagePath').fill(storagePath);
-    await expect(modal.locator('#wizard-format-mismatch'), 'a matching pair is not refused').toHaveCount(0);
+      await modal.locator('#wizard-title').fill(title);
+      await modal
+        .locator('#wizard-outputFormat')
+        .selectOption('application/pdf');
+      await modal.locator('#wizard-storagePath').fill(storagePath);
+      await expect(
+        modal.locator('#wizard-format-mismatch'),
+        'a matching pair is not refused',
+      ).toHaveCount(0);
 
-    // Longer than the markdown budget: this waits on a Typst compile (and, if
-    // the first pass does not compile, the worker's repair round-trip) on top
-    // of the inference call.
-    await runGeneration(modal, bus, 180_000);
-    await expectGeneratedAt(title, storagePath, 'application/pdf');
-  });
+      // Longer than the markdown budget: this waits on a Typst compile (and, if
+      // the first pass does not compile, the worker's repair round-trip) on top
+      // of the inference call.
+      await runGeneration(modal, bus, 180_000);
+      await expectGeneratedAt(title, storagePath, 'application/pdf');
+    },
+  );
 });
