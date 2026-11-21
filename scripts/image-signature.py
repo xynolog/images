@@ -10,9 +10,7 @@ import urllib.request
 from pathlib import Path
 
 
-def signature(
-    root: Path, dockerfile: Path, registry: str, rust: str, python: str
-) -> str:
+def signature(root: Path, dockerfile: Path, registry: str, rust: str, python: str) -> str:
     contents = dockerfile.read_bytes()
     text = contents.decode().replace("\\\n", " ")
     sources = hashlib.sha256()
@@ -23,21 +21,13 @@ def signature(
         if not re.match(r"^\s*COPY\s", line, re.IGNORECASE):
             continue
         words = shlex.split(line, comments=True)
-        if (
-            not words
-            or words[0].upper() != "COPY"
-            or any(word.startswith("--from") for word in words)
-        ):
+        if not words or words[0].upper() != "COPY" or any(word.startswith("--from") for word in words):
             continue
         for source in [word for word in words[1:-1] if not word.startswith("--")]:
             path = root / source
             if not path.exists():
                 raise FileNotFoundError(f"Dockerfile COPY input is missing: {source}")
-            files = (
-                [path]
-                if path.is_file()
-                else sorted(file for file in path.rglob("*") if file.is_file())
-            )
+            files = [path] if path.is_file() else sorted(file for file in path.rglob("*") if file.is_file())
             for file in files:
                 sources.update(str(file.relative_to(root)).encode())
                 sources.update(file.read_bytes())
@@ -60,25 +50,15 @@ def signature(
                 package = json.load(response)
             latest = package["versions"][package["dist-tags"]["latest"]]
             integrity[name] = latest["dist"]["integrity"]
-            pending += [
-                dep
-                for dep in latest.get("dependencies", {})
-                if dep.startswith("@xynolog/") and dep not in integrity
-            ]
+            pending += [dep for dep in latest.get("dependencies", {}) if dep.startswith("@xynolog/") and dep not in integrity]
     except (OSError, ValueError, KeyError):
         # An unknown dependency identity never permits a cached image to be skipped.
         return ""
-    return " ".join(
-        parts + [name + ":" + integrity[name] for name in sorted(integrity)]
-    )
+    return " ".join(parts + [name + ":" + integrity[name] for name in sorted(integrity)])
 
 
 if __name__ == "__main__":
     try:
-        print(
-            signature(
-                Path(sys.argv[1]), Path(sys.argv[1]) / sys.argv[2], *sys.argv[3:6]
-            )
-        )
+        print(signature(Path(sys.argv[1]), Path(sys.argv[1]) / sys.argv[2], *sys.argv[3:6]))
     except OSError as error:
         sys.exit(str(error))

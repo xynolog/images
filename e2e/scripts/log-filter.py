@@ -35,34 +35,35 @@ etc.). JSON parsing + level-aware filtering avoids those false positives
 and produces compact one-line output suitable for a live-monitoring
 terminal.
 """
+
 import sys
 import json
 import argparse
 
-NOISY_COMPONENTS = {'event-loop-monitor'}
-INTERESTING_LEVELS = {'warn', 'warning', 'error', 'fatal'}
+NOISY_COMPONENTS = {"event-loop-monitor"}
+INTERESTING_LEVELS = {"warn", "warning", "error", "fatal"}
 
 ap = argparse.ArgumentParser()
-ap.add_argument('--source', required=True)
+ap.add_argument("--source", required=True)
 args = ap.parse_args()
 
 src = args.source
 for raw in sys.stdin:
-    raw = raw.rstrip('\n')
+    raw = raw.rstrip("\n")
     if not raw:
         continue
     try:
         e = json.loads(raw)
     except json.JSONDecodeError:
         # non-JSON: emit as-is (boot lines, frontend stdout, etc.)
-        print(f'[{src}] (raw) {raw}', flush=True)
+        print(f"[{src}] (raw) {raw}", flush=True)
         continue
     if not isinstance(e, dict):
         continue
-    level = (e.get('level') or '').lower()
-    component = e.get('component') or ''
-    status = e.get('status')
-    msg = e.get('message') or ''
+    level = (e.get("level") or "").lower()
+    component = e.get("component") or ""
+    status = e.get("status")
+    msg = e.get("message") or ""
 
     if component in NOISY_COMPONENTS:
         continue
@@ -74,11 +75,23 @@ for raw in sys.stdin:
 
     # Compact one-line output.
     extras = []
-    for k in ('status', 'method', 'path', 'channel', 'jobId', 'resourceId', 'annotationId',
-              'error', 'errorCode', 'requestId', 'correlationId', 'trace_id'):
+    for k in (
+        "status",
+        "method",
+        "path",
+        "channel",
+        "jobId",
+        "resourceId",
+        "annotationId",
+        "error",
+        "errorCode",
+        "requestId",
+        "correlationId",
+        "trace_id",
+    ):
         v = e.get(k)
-        if v is not None and v != '':
-            extras.append(f'{k}={v}')
-    extras_str = ' '.join(extras)
-    ts = e.get('timestamp', '')
-    print(f'[{src}] {ts} {level.upper():5} {msg}  {extras_str}', flush=True)
+        if v is not None and v != "":
+            extras.append(f"{k}={v}")
+    extras_str = " ".join(extras)
+    ts = e.get("timestamp", "")
+    print(f"[{src}] {ts} {level.upper():5} {msg}  {extras_str}", flush=True)

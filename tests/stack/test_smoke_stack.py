@@ -24,9 +24,7 @@ PROTECTED_RESOURCE = {
 DISCOVERY = {
     "issuer": ISSUER,
     "token_endpoint": f"{ISSUER}/protocol/openid-connect/token",
-    "mtls_endpoint_aliases": {
-        "token_endpoint": f"{ISSUER}/protocol/openid-connect/token"
-    },
+    "mtls_endpoint_aliases": {"token_endpoint": f"{ISSUER}/protocol/openid-connect/token"},
 }
 # Each init writes a KnowledgeBase document whose gateway has a port of its own,
 # as init gives a knowledge base beside another the next port block.
@@ -88,9 +86,7 @@ class SmokeStackTest(unittest.TestCase):
         shutil.copyfile(SOURCE, script)
         runtime_helper = self.root / "build-tools/container-runtime.sh"
         runtime_helper.parent.mkdir(parents=True)
-        shutil.copyfile(
-            SOURCE.parents[2] / "build-tools/container-runtime.sh", runtime_helper
-        )
+        shutil.copyfile(SOURCE.parents[2] / "build-tools/container-runtime.sh", runtime_helper)
         e2e_package = self.root / "e2e/package.json"
         e2e_package.parent.mkdir(parents=True)
         shutil.copyfile(SOURCE.parents[2] / "e2e/package.json", e2e_package)
@@ -163,43 +159,27 @@ class SmokeStackTest(unittest.TestCase):
 
     def lines(self, name: str) -> list:
         path = self.root / name
-        return (
-            [json.loads(line) for line in path.read_text().splitlines()]
-            if path.exists()
-            else []
-        )
+        return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
 
     def stopped(self) -> list[str]:
         """The root of each `stop`, resolved: macOS reports a temporary directory's cwd under /private."""
         stops = [call for call in self.lines("xynolog.jsonl") if call[0] == "stop"]
         for call in stops:
-            self.assertIn(
-                "--root", call, "a stop naming no root stops whichever stack it finds"
-            )
+            self.assertIn("--root", call, "a stop naming no root stops whichever stack it finds")
         return [os.path.realpath(call[call.index("--root") + 1]) for call in stops]
 
     def asked_status(self) -> list[str]:
         """The root of each `status`, resolved."""
-        return [
-            os.path.realpath(call[call.index("--root") + 1])
-            for call in self.lines("xynolog.jsonl")
-            if call[0] == "status"
-        ]
+        return [os.path.realpath(call[call.index("--root") + 1]) for call in self.lines("xynolog.jsonl") if call[0] == "status"]
 
     def suites(self) -> list[list[str]]:
         """Each run of the suite: its shell's $0 and arguments."""
         path = self.root / "suites.log"
-        return (
-            [line.rstrip("\t").split("\t") for line in path.read_text().splitlines()]
-            if path.exists()
-            else []
-        )
+        return [line.rstrip("\t").split("\t") for line in path.read_text().splitlines()] if path.exists() else []
 
     def assert_documents_restored(self) -> None:
         for name, original in DOCUMENTS.items():
-            self.assertEqual(
-                (self.root / "state home" / f"{name}.yaml").read_text(), original
-            )
+            self.assertEqual((self.root / "state home" / f"{name}.yaml").read_text(), original)
 
     def test_up_names_the_images_and_down_restores_the_documents(self) -> None:
         for tag in ("local", "latest", "0.7.1"):
@@ -213,9 +193,7 @@ class SmokeStackTest(unittest.TestCase):
                     )
                 started = self.lines("starts.jsonl")[-1]
                 for name in ("browser", "worker", "gateway"):
-                    self.assertIn(
-                        f"ghcr.io/xynolog/xynolog-{name}:{tag}\n", started[name]
-                    )
+                    self.assertIn(f"ghcr.io/xynolog/xynolog-{name}:{tag}\n", started[name])
                     if name != "gateway":
                         self.assertIn(f"keep: {name}-setting\n", started[name])
                 result = self.smoke("down")
@@ -327,9 +305,7 @@ class SmokeStackTest(unittest.TestCase):
         )
 
     def test_run_gives_its_e2e_the_script_and_arguments(self) -> None:
-        result = self.smoke(
-            "run", "local", "--e2e", "--script", "test:slow", "--", "specs/20-x.spec.ts"
-        )
+        result = self.smoke("run", "local", "--e2e", "--script", "test:slow", "--", "specs/20-x.spec.ts")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(
             self.suites(),

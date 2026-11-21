@@ -18,11 +18,7 @@ def main() -> None:
     bundle = pathlib.Path(sys.argv[1]).resolve()
     output = pathlib.Path(sys.argv[2]).resolve()
     manifest = json.loads((bundle / "artifacts.json").read_text())
-    artifacts = [
-        artifact
-        for artifact in manifest["artifacts"]
-        if artifact["ecosystem"] == "cargo"
-    ]
+    artifacts = [artifact for artifact in manifest["artifacts"] if artifact["ecosystem"] == "cargo"]
     if not artifacts:
         raise SystemExit("SDK artifact bundle contains no Cargo packages")
 

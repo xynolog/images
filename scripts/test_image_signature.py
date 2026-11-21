@@ -8,9 +8,7 @@ import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-SPEC = importlib.util.spec_from_file_location(
-    "image_signature", Path(__file__).with_name("image-signature.py")
-)
+SPEC = importlib.util.spec_from_file_location("image_signature", Path(__file__).with_name("image-signature.py"))
 image_signature = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(image_signature)
 
@@ -25,9 +23,7 @@ class SignatureTest(unittest.TestCase):
         (self.root / "source.txt").write_text("first")
 
     def signature(self, registry="http://127.0.0.1:1", rust="rust", python="python"):
-        return image_signature.signature(
-            self.root, self.dockerfile, registry, rust, python
-        )
+        return image_signature.signature(self.root, self.dockerfile, registry, rust, python)
 
     def test_copy_inputs_dockerfile_and_toolchain_all_invalidate(self):
         before = self.signature()
