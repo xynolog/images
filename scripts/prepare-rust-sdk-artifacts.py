@@ -24,7 +24,7 @@ def main() -> None:
 
     crates_dir = output / "crates"
     crates_dir.mkdir(parents=True, exist_ok=True)
-    patch_entries = []
+    patch_entries: list[str] = []
     for artifact in sorted(artifacts, key=lambda item: item["package"]):
         name = artifact["package"]
         archive = bundle / artifact["path"]

@@ -62,6 +62,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from container_names import resolve_containers
+from json_values import JSON
 
 
 def parse_args() -> argparse.Namespace:
@@ -103,7 +104,7 @@ def slice_by_timestamp(raw: str, start_ms: int, end_ms: int) -> tuple[list[str],
         if not line.strip():
             continue
         try:
-            entry = json.loads(line)
+            entry: JSON = json.loads(line)
         except json.JSONDecodeError:
             continue
         ts = entry.get("timestamp") if isinstance(entry, dict) else None

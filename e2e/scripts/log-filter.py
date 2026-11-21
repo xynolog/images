@@ -36,9 +36,11 @@ and produces compact one-line output suitable for a live-monitoring
 terminal.
 """
 
-import sys
-import json
 import argparse
+import json
+import sys
+
+from json_values import JSON, json_text
 
 NOISY_COMPONENTS = {"event-loop-monitor"}
 INTERESTING_LEVELS = {"warn", "warning", "error", "fatal"}
@@ -53,14 +55,14 @@ for raw in sys.stdin:
     if not raw:
         continue
     try:
-        e = json.loads(raw)
+        e: JSON = json.loads(raw)
     except json.JSONDecodeError:
         # non-JSON: emit as-is (boot lines, frontend stdout, etc.)
         print(f"[{src}] (raw) {raw}", flush=True)
         continue
     if not isinstance(e, dict):
         continue
-    level = (e.get("level") or "").lower()
+    level = json_text(e, "level").lower()
     component = e.get("component") or ""
     status = e.get("status")
     msg = e.get("message") or ""
@@ -74,7 +76,7 @@ for raw in sys.stdin:
         continue
 
     # Compact one-line output.
-    extras = []
+    extras: list[str] = []
     for k in (
         "status",
         "method",

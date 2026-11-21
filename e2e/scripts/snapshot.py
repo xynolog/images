@@ -44,6 +44,7 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 
 from container_names import resolve_containers
+from json_values import JSON, json_objects, json_text
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--seconds", type=int, default=60)
@@ -69,7 +70,7 @@ def parse_ts(s: str) -> int | None:
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         return int(dt.timestamp() * 1000)
-    except (ValueError, AttributeError):
+    except ValueError:
         return None
 
 
@@ -86,23 +87,23 @@ for name in names:
     if raw.returncode != 0:
         print(f"  (failed: {raw.stderr.strip()})")
         continue
-    matched = []
+    matched: list[dict[str, JSON]] = []
     for line in raw.stdout.splitlines():
         if not line.strip():
             continue
         try:
-            e = json.loads(line)
+            e: JSON = json.loads(line)
         except json.JSONDecodeError:
             continue
         if not isinstance(e, dict):
             continue
-        ts_ms = parse_ts(e.get("timestamp", ""))
+        ts_ms = parse_ts(json_text(e, "timestamp"))
         if ts_ms is None or ts_ms < start_ms or ts_ms > now_ms:
             continue
         if e.get("component") == "event-loop-monitor":
             continue
         if args.errors_only:
-            level = (e.get("level") or "").lower()
+            level = json_text(e, "level").lower()
             status = e.get("status")
             if level not in INTERESTING and not (isinstance(status, int) and status >= 400):
                 continue
@@ -110,10 +111,10 @@ for name in names:
     print(f"  {len(matched)} matching lines")
     for e in matched[-args.max_lines_per_container :]:
         ts = e.get("timestamp", "")
-        level = (e.get("level") or "?").upper()[:5]
+        level = (json_text(e, "level") or "?").upper()[:5]
         msg = e.get("message", "")
         # compact extra fields
-        extras = []
+        extras: list[str] = []
         for k in (
             "status",
             "method",
@@ -136,20 +137,22 @@ for name in names:
 print(f"\n--- Jaeger traces ({args.jaeger_url}) ---")
 services = ["xynolog-gateway", "xynolog-worker", "xynolog-smelter"]
 total = 0
-all_traces = []
+all_traces: list[tuple[str, dict[str, JSON]]] = []
 for svc in services:
     url = f"{args.jaeger_url}/api/traces?service={svc}&start={start_ms * 1000}&end={now_ms * 1000}&limit=200&lookback=custom"
     try:
         with urllib.request.urlopen(url, timeout=5) as resp:
-            data = json.loads(resp.read())
-        traces = data.get("data") or []
+            data: JSON = json.loads(resp.read())
+        if not isinstance(data, dict):
+            raise ValueError("the response is not a JSON object")
+        traces = json_objects(data.get("data"))
         total += len(traces)
         all_traces.extend((svc, t) for t in traces)
         # find spans with error status
         err_count = 0
         for t in traces:
-            for sp in t.get("spans", []):
-                for tag in sp.get("tags", []):
+            for sp in json_objects(t.get("spans")):
+                for tag in json_objects(sp.get("tags")):
                     if tag.get("key") in ("error", "otel.status_code") and tag.get("value") in (True, "ERROR"):
                         err_count += 1
                         break

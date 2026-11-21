@@ -14,7 +14,7 @@ def signature(root: Path, dockerfile: Path, registry: str, rust: str, python: st
     contents = dockerfile.read_bytes()
     text = contents.decode().replace("\\\n", " ")
     sources = hashlib.sha256()
-    pending = []
+    pending: list[str] = []
     for line in text.splitlines():
         if re.search(r"\bnpm install\b", line) and not line.lstrip().startswith("#"):
             pending += re.findall(r"@xynolog/[a-z-]+", line)
@@ -39,7 +39,7 @@ def signature(root: Path, dockerfile: Path, registry: str, rust: str, python: st
     for name, value in (("RUST_TOOLCHAIN", rust), ("PYTHON_FLOOR", python)):
         if re.search(r"^ARG " + name + r"(?:=|\s|$)", text, re.MULTILINE):
             parts.append(f"{name}:{value}")
-    integrity = {}
+    integrity: dict[str, str] = {}
     try:
         while pending:
             name = pending.pop()

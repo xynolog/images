@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import TypedDict, override
 
 SOURCE = Path(__file__).with_name("smoke-stack.sh")
 DOCUMENTS = {
@@ -75,7 +76,16 @@ elif command in ("stop", "clean", "forget", "useradd", "status"):
 DRAINED = "0 pending · 0 running · 4 completed · 0 failed since worker start"
 
 
+class Init(TypedDict):
+    """A line of the launcher's inits.jsonl: where an init ran, for which domain, and with what."""
+
+    cwd: str
+    domain: str
+    flags: list[str]
+
+
 class SmokeStackTest(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
@@ -157,20 +167,33 @@ class SmokeStackTest(unittest.TestCase):
             timeout=60,
         )
 
-    def lines(self, name: str) -> list:
+    def logged(self, name: str) -> list[str]:
+        """The lines of the launcher's log ``name``; none before it logs one."""
         path = self.root / name
-        return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
+        return path.read_text().splitlines() if path.exists() else []
+
+    def commands(self) -> list[list[str]]:
+        """The arguments of each stop, clean, forget, useradd and status."""
+        return [json.loads(line) for line in self.logged("xynolog.jsonl")]
+
+    def starts(self) -> list[dict[str, str]]:
+        """Each start: the browser, worker and gateway documents it found, and its cwd."""
+        return [json.loads(line) for line in self.logged("starts.jsonl")]
+
+    def inits(self) -> list[Init]:
+        """Each init."""
+        return [json.loads(line) for line in self.logged("inits.jsonl")]
 
     def stopped(self) -> list[str]:
         """The root of each `stop`, resolved: macOS reports a temporary directory's cwd under /private."""
-        stops = [call for call in self.lines("xynolog.jsonl") if call[0] == "stop"]
+        stops = [call for call in self.commands() if call[0] == "stop"]
         for call in stops:
-            self.assertIn("--root", call, "a stop naming no root stops whichever stack it finds")
+            assert "--root" in call, "a stop naming no root stops whichever stack it finds"
         return [os.path.realpath(call[call.index("--root") + 1]) for call in stops]
 
     def asked_status(self) -> list[str]:
         """The root of each `status`, resolved."""
-        return [os.path.realpath(call[call.index("--root") + 1]) for call in self.lines("xynolog.jsonl") if call[0] == "status"]
+        return [os.path.realpath(call[call.index("--root") + 1]) for call in self.commands() if call[0] == "status"]
 
     def suites(self) -> list[list[str]]:
         """Each run of the suite: its shell's $0 and arguments."""
@@ -179,27 +202,24 @@ class SmokeStackTest(unittest.TestCase):
 
     def assert_documents_restored(self) -> None:
         for name, original in DOCUMENTS.items():
-            self.assertEqual((self.root / "state home" / f"{name}.yaml").read_text(), original)
+            assert (self.root / "state home" / f"{name}.yaml").read_text() == original
 
     def test_up_names_the_images_and_down_restores_the_documents(self) -> None:
         for tag in ("local", "latest", "0.7.1"):
             with self.subTest(tag=tag):
                 result = self.smoke("up", tag)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                assert result.returncode == 0, result.stdout + result.stderr
                 for name in DOCUMENTS:
-                    self.assertIn(
-                        f"image: ghcr.io/xynolog/xynolog-{name}:{tag}\n",
-                        (self.root / "state home" / f"{name}.yaml").read_text(),
-                    )
-                started = self.lines("starts.jsonl")[-1]
+                    assert f"image: ghcr.io/xynolog/xynolog-{name}:{tag}\n" in (self.root / "state home" / f"{name}.yaml").read_text()
+                started = self.starts()[-1]
                 for name in ("browser", "worker", "gateway"):
-                    self.assertIn(f"ghcr.io/xynolog/xynolog-{name}:{tag}\n", started[name])
+                    assert f"ghcr.io/xynolog/xynolog-{name}:{tag}\n" in started[name]
                     if name != "gateway":
-                        self.assertIn(f"keep: {name}-setting\n", started[name])
+                        assert f"keep: {name}-setting\n" in started[name]
                 result = self.smoke("down")
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                assert result.returncode == 0, result.stdout + result.stderr
                 self.assert_documents_restored()
-                self.assertIn(os.path.realpath(self.kb), self.stopped())
+                assert os.path.realpath(self.kb) in self.stopped()
                 shutil.rmtree(self.kb)
 
     def test_stack_smoke_requires_xynolog_before_starting_anything(self) -> None:
@@ -212,73 +232,68 @@ class SmokeStackTest(unittest.TestCase):
             capture_output=True,
             text=True,
         )
-        self.assertEqual(result.returncode, 2)
-        self.assertIn("needs the xynolog CLI", result.stderr)
-        self.assertEqual(self.lines("starts.jsonl"), [])
+        assert result.returncode == 2
+        assert "needs the xynolog CLI" in result.stderr
+        assert self.starts() == []
 
     def test_up_checks_the_realm_at_the_issuer_the_gateway_names(self) -> None:
         result = self.smoke("up", "local")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(
-            (self.root / "curl.log").read_text().splitlines(),
-            [
-                "http://localhost:4000/.well-known/oauth-protected-resource",
-                f"{ISSUER}/.well-known/openid-configuration",
-                DISCOVERY["token_endpoint"],
-            ],
-        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert (self.root / "curl.log").read_text().splitlines() == [
+            "http://localhost:4000/.well-known/oauth-protected-resource",
+            f"{ISSUER}/.well-known/openid-configuration",
+            DISCOVERY["token_endpoint"],
+        ]
 
     def test_a_failed_up_takes_its_stack_down(self) -> None:
         result = self.smoke("up", "local", start_status="1")
-        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        assert result.returncode == 1, result.stdout + result.stderr
         self.assert_documents_restored()
-        self.assertFalse((self.kb / ".smoke-kept").exists())
-        self.assertNotEqual(self.smoke("down").returncode, 0)
-        self.assertNotIn(
-            "xynolog-another-kb-gateway",
-            result.stdout + result.stderr,
-            "the launcher prints a failed container's log; the smoke prints none of the machine's",
+        assert not (self.kb / ".smoke-kept").exists()
+        assert self.smoke("down").returncode != 0
+        assert "xynolog-another-kb-gateway" not in result.stdout + result.stderr, (
+            "the launcher prints a failed container's log; the smoke prints none of the machine's"
         )
 
     def test_e2e_and_down_refuse_without_a_stack_up(self) -> None:
         for command in ("e2e", "down"):
             result = self.smoke(command)
-            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-            self.assertIn("up", result.stderr)
-        self.assertEqual(self.lines("starts.jsonl"), [])
+            assert result.returncode == 1, result.stdout + result.stderr
+            assert "up" in result.stderr
+        assert self.starts() == []
 
     def test_a_second_up_refuses_while_one_is_up(self) -> None:
-        self.assertEqual(self.smoke("up", "local").returncode, 0)
+        assert self.smoke("up", "local").returncode == 0
         result = self.smoke("up", "local")
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("tests/stack/smoke-stack.sh down", result.stderr)
-        self.assertEqual(len(self.lines("starts.jsonl")), 1)
+        assert result.returncode == 1
+        assert "tests/stack/smoke-stack.sh down" in result.stderr
+        assert len(self.starts()) == 1
 
     def test_each_e2e_runs_on_a_fresh_knowledge_base_beside_up(self) -> None:
-        self.assertEqual(self.smoke("up", "0.7.1").returncode, 0)
+        assert self.smoke("up", "0.7.1").returncode == 0
         for _ in range(2):
             result = self.smoke("e2e")
-            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        inits = self.lines("inits.jsonl")
-        self.assertEqual(len(inits), 3)
-        self.assertEqual(len({init["domain"] for init in inits}), 3)
-        self.assertEqual(len({init["cwd"] for init in inits}), 3)
+            assert result.returncode == 0, result.stdout + result.stderr
+        inits = self.inits()
+        assert len(inits) == 3
+        assert len({init["domain"] for init in inits}) == 3
+        assert len({init["cwd"] for init in inits}) == 3
         for e2e in inits[1:]:
-            self.assertNotEqual(os.path.realpath(e2e["cwd"]), os.path.realpath(self.kb))
-            self.assertFalse(Path(e2e["cwd"]).exists())
-            self.assertIn(os.path.realpath(e2e["cwd"]), self.stopped())
+            assert os.path.realpath(e2e["cwd"]) != os.path.realpath(self.kb)
+            assert not Path(e2e["cwd"]).exists()
+            assert os.path.realpath(e2e["cwd"]) in self.stopped()
             # A queue that reads empty is read once.
-            self.assertEqual(self.asked_status().count(os.path.realpath(e2e["cwd"])), 1)
-        for start in self.lines("starts.jsonl")[1:]:
-            self.assertIn("ghcr.io/xynolog/xynolog-gateway:0.7.1\n", start["gateway"])
-        self.assertNotIn(os.path.realpath(self.kb), self.stopped())
+            assert self.asked_status().count(os.path.realpath(e2e["cwd"])) == 1
+        for start in self.starts()[1:]:
+            assert "ghcr.io/xynolog/xynolog-gateway:0.7.1\n" in start["gateway"]
+        assert os.path.realpath(self.kb) not in self.stopped()
         calls = (self.root / "runtime.log").read_text()
-        self.assertIn("E2E_GATEWAY_URL=http://localhost:4010", calls)
-        self.assertIn("E2E_GATEWAY_URL=http://localhost:4020", calls)
-        self.assertTrue((self.kb / ".smoke-kept").exists())
+        assert "E2E_GATEWAY_URL=http://localhost:4010" in calls
+        assert "E2E_GATEWAY_URL=http://localhost:4020" in calls
+        assert (self.kb / ".smoke-kept").exists()
 
     def test_e2e_runs_test_ci_unless_another_script_is_named(self) -> None:
-        self.assertEqual(self.smoke("up", "0.7.1").returncode, 0)
+        assert self.smoke("up", "0.7.1").returncode == 0
         for args in (
             (),
             ("--script", "test:slow"),
@@ -287,52 +302,37 @@ class SmokeStackTest(unittest.TestCase):
         ):
             with self.subTest(args=args):
                 result = self.smoke("e2e", *args)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(
-            self.suites(),
-            [
-                ["sh", "smoke-test-runtime", "test:ci"],
-                ["sh", "smoke-test-runtime", "test:slow"],
-                [
-                    "sh",
-                    "smoke-test-runtime",
-                    "test:ci",
-                    "specs/20-x.spec.ts",
-                    "--repeat-each=5",
-                ],
-                ["sh", "smoke-test-runtime", "test:model", "--grep", "two words"],
-            ],
-        )
+                assert result.returncode == 0, result.stdout + result.stderr
+        assert self.suites() == [
+            ["sh", "smoke-test-runtime", "test:ci"],
+            ["sh", "smoke-test-runtime", "test:slow"],
+            ["sh", "smoke-test-runtime", "test:ci", "specs/20-x.spec.ts", "--repeat-each=5"],
+            ["sh", "smoke-test-runtime", "test:model", "--grep", "two words"],
+        ]
 
     def test_run_gives_its_e2e_the_script_and_arguments(self) -> None:
         result = self.smoke("run", "local", "--e2e", "--script", "test:slow", "--", "specs/20-x.spec.ts")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(
-            self.suites(),
-            [["sh", "smoke-test-runtime", "test:slow", "specs/20-x.spec.ts"]],
-        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert self.suites() == [["sh", "smoke-test-runtime", "test:slow", "specs/20-x.spec.ts"]]
 
     def test_e2e_binds_its_knowledge_base_to_the_model_named_and_up_to_inits(self) -> None:
-        self.assertEqual(self.smoke("up", "0.7.1").returncode, 0)
+        assert self.smoke("up", "0.7.1").returncode == 0
         for args in ((), ("--script", "test:slow", "--model", "gemma4:26b")):
             with self.subTest(args=args):
                 result = self.smoke("e2e", *args)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        up, default, named = self.lines("inits.jsonl")
-        self.assertEqual(up["flags"], ["--yes", "--domain", "example.github.io:stack-smoke"])
-        self.assertEqual(default["flags"], ["--yes", "--domain", default["domain"]])
-        self.assertEqual(named["flags"], ["--yes", "--domain", named["domain"], "--model", "gemma4:26b"])
-        self.assertEqual(
-            self.suites(),
-            [["sh", "smoke-test-runtime", "test:ci"], ["sh", "smoke-test-runtime", "test:slow"]],
-        )
+                assert result.returncode == 0, result.stdout + result.stderr
+        up, default, named = self.inits()
+        assert up["flags"] == ["--yes", "--domain", "example.github.io:stack-smoke"]
+        assert default["flags"] == ["--yes", "--domain", default["domain"]]
+        assert named["flags"] == ["--yes", "--domain", named["domain"], "--model", "gemma4:26b"]
+        assert self.suites() == [["sh", "smoke-test-runtime", "test:ci"], ["sh", "smoke-test-runtime", "test:slow"]]
 
     def test_run_gives_its_e2e_the_model(self) -> None:
         result = self.smoke("run", "local", "--e2e", "--model", "gemma4:26b")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        up, e2e = self.lines("inits.jsonl")
-        self.assertNotIn("--model", up["flags"])
-        self.assertEqual(e2e["flags"][-2:], ["--model", "gemma4:26b"])
+        assert result.returncode == 0, result.stdout + result.stderr
+        up, e2e = self.inits()
+        assert "--model" not in up["flags"]
+        assert e2e["flags"][-2:] == ["--model", "gemma4:26b"]
 
     def test_an_option_it_does_not_know_starts_nothing(self) -> None:
         for args in (
@@ -347,29 +347,29 @@ class SmokeStackTest(unittest.TestCase):
         ):
             with self.subTest(args=args):
                 result = self.smoke(*args)
-                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
-                self.assertIn("usage", result.stderr)
-        self.assertEqual(self.lines("inits.jsonl"), [])
+                assert result.returncode == 2, result.stdout + result.stderr
+                assert "usage" in result.stderr
+        assert self.inits() == []
 
     def test_a_failed_e2e_leaves_its_knowledge_base_up_until_down(self) -> None:
-        self.assertEqual(self.smoke("up", "0.7.1").returncode, 0)
+        assert self.smoke("up", "0.7.1").returncode == 0
         self.use_runtime("smoke-test-runtime", 7)
         result = self.smoke("e2e")
-        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        kept = os.path.realpath(self.lines("inits.jsonl")[1]["cwd"])
-        self.assertTrue(Path(kept).exists())
-        self.assertNotIn(kept, self.stopped())
-        self.assertIn(Path(kept).parent.name, result.stdout)
-        self.assertIn("tests/stack/smoke-stack.sh down", result.stdout)
+        assert result.returncode == 1, result.stdout + result.stderr
+        kept = os.path.realpath(self.inits()[1]["cwd"])
+        assert Path(kept).exists()
+        assert kept not in self.stopped()
+        assert Path(kept).parent.name in result.stdout
+        assert "tests/stack/smoke-stack.sh down" in result.stdout
         result = self.smoke("down")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertFalse(Path(kept).exists())
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert not Path(kept).exists()
         # The shared containers stop with the last knowledge base, so UP's is last.
-        self.assertEqual(self.stopped(), [kept, os.path.realpath(self.kb)])
+        assert self.stopped() == [kept, os.path.realpath(self.kb)]
         self.assert_documents_restored()
 
     def test_e2e_fails_on_a_job_left_pending_or_running(self) -> None:
-        self.assertEqual(self.smoke("up", "0.7.1").returncode, 0)
+        assert self.smoke("up", "0.7.1").returncode == 0
         for queue, reason in (
             ("2 pending · 0 running", "2 pending and 0 running"),
             (
@@ -380,19 +380,19 @@ class SmokeStackTest(unittest.TestCase):
         ):
             with self.subTest(queue=queue):
                 result = self.smoke("e2e", queue=queue)
-                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-                self.assertIn(reason, result.stdout)
-                kept = os.path.realpath(self.lines("inits.jsonl")[-1]["cwd"])
-                self.assertTrue(Path(kept).exists(), "a failed run leaves its KB")
-                self.assertNotIn(kept, self.stopped())
+                assert result.returncode == 1, result.stdout + result.stderr
+                assert reason in result.stdout
+                kept = os.path.realpath(self.inits()[-1]["cwd"])
+                assert Path(kept).exists(), "a failed run leaves its KB"
+                assert kept not in self.stopped()
                 # Read again and again while it does not read empty.
-                self.assertGreater(self.asked_status().count(kept), 1)
-        left = [os.path.realpath(init["cwd"]) for init in self.lines("inits.jsonl")[1:]]
+                assert self.asked_status().count(kept) > 1
+        left = [os.path.realpath(init["cwd"]) for init in self.inits()[1:]]
         result = self.smoke("down")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        assert result.returncode == 0, result.stdout + result.stderr
         for kept in left:
-            self.assertFalse(Path(kept).exists())
-        self.assertEqual(self.stopped(), [*left, os.path.realpath(self.kb)])
+            assert not Path(kept).exists()
+        assert self.stopped() == [*left, os.path.realpath(self.kb)]
 
     def test_run_with_e2e_uses_the_selected_runtime_and_takes_everything_down(
         self,
@@ -411,29 +411,25 @@ class SmokeStackTest(unittest.TestCase):
                     shutil.rmtree(self.kb, ignore_errors=True)
                     self.use_runtime(runtime, status)
                     result = self.smoke("run", "local", "--e2e")
-                    self.assertEqual(
-                        result.returncode,
-                        int(status != 0),
-                        result.stdout + result.stderr,
-                    )
+                    assert result.returncode == int(status != 0), result.stdout + result.stderr
                     self.assert_documents_restored()
-                    self.assertFalse((self.kb / ".smoke-kept").exists())
+                    assert not (self.kb / ".smoke-kept").exists()
                     calls = (self.root / "runtime.log").read_text()
-                    self.assertIn("e2e-localhost-bridge.mjs", calls)
-                    self.assertIn("sh " + runtime, calls)
+                    assert "e2e-localhost-bridge.mjs" in calls
+                    assert "sh " + runtime in calls
                     if runtime == "container":
-                        self.assertNotIn("--network host", calls)
-                        self.assertNotIn("--ipc host", calls)
+                        assert "--network host" not in calls
+                        assert "--ipc host" not in calls
                     else:
-                        self.assertIn("--network host --ipc host", calls)
+                        assert "--network host --ipc host" in calls
                     stops = self.stopped()
-                    self.assertEqual(stops[-1], os.path.realpath(self.kb))
-                    self.assertNotIn(os.path.realpath(self.kb), stops[:-1])
+                    assert stops[-1] == os.path.realpath(self.kb)
+                    assert os.path.realpath(self.kb) not in stops[:-1]
                     # Passed or failed, the e2e's knowledge base is gone when run is done.
-                    e2e = os.path.realpath(self.lines("inits.jsonl")[1]["cwd"])
-                    self.assertIn(e2e, stops)
-                    self.assertFalse(Path(e2e).exists())
-                    self.assertEqual(self.suites(), [["sh", runtime, "test:ci"]])
+                    e2e = os.path.realpath(self.inits()[1]["cwd"])
+                    assert e2e in stops
+                    assert not Path(e2e).exists()
+                    assert self.suites() == [["sh", runtime, "test:ci"]]
 
 
 if __name__ == "__main__":

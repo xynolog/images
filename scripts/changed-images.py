@@ -116,7 +116,7 @@ def main() -> None:
         print(f"No base commit to compare with ({base or 'none'}): every image is affected", file=sys.stderr)
         changed = []
 
-    affected = []
+    affected: list[str] = []
     for image in every:
         inputs = copied_paths(image, tracked, submodules) + SHARED_ROOT[language_of[image]] + EVERY_BUILD
         hits = sorted({path for path in changed for each in inputs if touches(path, each)})
