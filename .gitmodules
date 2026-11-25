@@ -4,3 +4,6 @@
 [submodule "build-tools"]
 	path = build-tools
 	url = https://github.com/xynolog/build-tools.git
+[submodule "brand"]
+	path = brand
+	url = https://github.com/xynolog/brand.git
