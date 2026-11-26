@@ -23,7 +23,7 @@ that maintains framework independence:
               │ mounts
               ▼
 ┌─────────────────────────────────────┐
-│    packages/typescript/react-ui                │
+│    @xynolog/react-ui                │
 │  (Framework-agnostic library)       │
 │                                     │
 │  • XynologProvider — the single     │
@@ -34,7 +34,7 @@ that maintains framework independence:
               │ uses
               ▼
 ┌─────────────────────────────────────┐
-│    packages/typescript/sdk                     │
+│    @xynolog/sdk                     │
 │  (XynologClient + sessions)         │
 │                                     │
 │  • XynologBrowser / XynologSession  │
@@ -45,7 +45,7 @@ that maintains framework independence:
               │ uses
               ▼
 ┌─────────────────────────────────────┐
-│    packages/typescript/http-transport          │
+│    @xynolog/http-transport          │
 │  (Wire adapter)                     │
 │                                     │
 │  • OpenAPI-generated types          │

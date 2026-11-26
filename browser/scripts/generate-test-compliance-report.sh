@@ -2,17 +2,21 @@
 set -e
 
 # Thin wrapper for Browser test compliance reporting
-# Calls shared compliance scripts with workspace-specific paths
+# Calls the SDK checkout's compliance scripts (SDK_REPO) with the Browser's paths
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SRC_DIR="$(cd "$SCRIPT_DIR/../src" && pwd)"
 REPORT_DIR="$REPO_ROOT/.compliance"
 mkdir -p "$REPORT_DIR"
 REPORT_FILE="$REPORT_DIR/BROWSER-TESTS-COMPLIANCE.md"
 
-# Shared compliance script
-AUDIT_TESTS="$REPO_ROOT/packages/typescript/scripts/compliance/batch-audit-tests.ts"
+# The SDK's compliance script
+[[ -d "${SDK_REPO:?Set SDK_REPO to the SDK checkout whose compliance scripts audit the Browser.}/typescript/scripts/compliance" ]] || {
+  echo "No compliance scripts at $SDK_REPO/typescript/scripts/compliance." >&2
+  exit 2
+}
+AUDIT_TESTS="$SDK_REPO/typescript/scripts/compliance/batch-audit-tests.ts"
 
 echo "🧪 Auditing test files in $SRC_DIR..."
 # The audit exits non-zero when a test file fails. Its status is kept, so the

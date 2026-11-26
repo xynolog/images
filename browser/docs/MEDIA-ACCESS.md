@@ -136,9 +136,9 @@ The split is **display vs programmatic**, not text vs binary:
 ---
 
 **Key implementation**:
-- `packages/typescript/react-ui/src/hooks/useMediaToken.ts` — the refreshing token hook
-- `packages/typescript/react-ui/src/lib/media-url.ts` — `mediaUrl()`, the one place the `?token=` URL is built
-- `packages/typescript/react-ui/src/features/resource-viewer/components/ResourceViewerPage.tsx` — the `<img>` / PDF.js consumer, for binary resources
-- `packages/typescript/react-ui/src/components/resource/DownloadFileLink.tsx` — the `<a download>` consumer (unsupported-media fallback in both resource views)
-- `packages/typescript/sdk/src/namespaces/auth.ts` — `auth.mediaToken()` → `POST /api/tokens/media`
-- `packages/typescript/react-ui/src/lib/browser-pdfjs.ts` — PDF.js loader that consumes the `?token=` URL
+- [`@xynolog/react-ui/src/hooks/useMediaToken.ts`](https://github.com/xynolog/sdk/blob/main/typescript/react-ui/src/hooks/useMediaToken.ts) — the refreshing token hook
+- [`@xynolog/react-ui/src/lib/media-url.ts`](https://github.com/xynolog/sdk/blob/main/typescript/react-ui/src/lib/media-url.ts) — `mediaUrl()`, the one place the `?token=` URL is built
+- [`@xynolog/react-ui/src/features/resource-viewer/components/ResourceViewerPage.tsx`](https://github.com/xynolog/sdk/blob/main/typescript/react-ui/src/features/resource-viewer/components/ResourceViewerPage.tsx) — the `<img>` / PDF.js consumer, for binary resources
+- [`@xynolog/react-ui/src/components/resource/DownloadFileLink.tsx`](https://github.com/xynolog/sdk/blob/main/typescript/react-ui/src/components/resource/DownloadFileLink.tsx) — the `<a download>` consumer (unsupported-media fallback in both resource views)
+- [`@xynolog/sdk/src/namespaces/auth.ts`](https://github.com/xynolog/sdk/blob/main/typescript/sdk/src/namespaces/auth.ts) — `auth.mediaToken()` → `POST /api/tokens/media`
+- [`@xynolog/react-ui/src/lib/browser-pdfjs.ts`](https://github.com/xynolog/sdk/blob/main/typescript/react-ui/src/lib/browser-pdfjs.ts) — PDF.js loader that consumes the `?token=` URL

@@ -170,9 +170,9 @@ The registry holds every per-motivation fact, but supporting another motivation 
 
 - `protocol/specs/src/components/schemas/Motivation.json` — the `Motivation` enum must admit it (then regenerate the types in `@xynolog/core`), and a type guard in `@xynolog/core` recognizes it
 - [`@xynolog/react-ui/src/lib/annotation-registry.ts`](https://github.com/xynolog/sdk/blob/main/typescript/react-ui/src/lib/annotation-registry.ts) — its annotator
-- `packages/typescript/react-ui/src/types/annotation-props.ts` and `packages/typescript/react-ui/src/lib/annotation-groups.ts` — `AnnotationsCollection` and the grouping that fills it have one bucket per motivation
-- `packages/typescript/react-ui/src/components/resource/panels/UnifiedAnnotationsPanel.tsx` — its tab, and a panel for it
-- `packages/typescript/react-ui/src/styles/motivations/` — the stylesheet for its `annotation-<type>` class
+- [`@xynolog/react-ui/src/types/annotation-props.ts`](https://github.com/xynolog/sdk/blob/main/typescript/react-ui/src/types/annotation-props.ts) and [`@xynolog/react-ui/src/lib/annotation-groups.ts`](https://github.com/xynolog/sdk/blob/main/typescript/react-ui/src/lib/annotation-groups.ts) — `AnnotationsCollection` and the grouping that fills it have one bucket per motivation
+- [`@xynolog/react-ui/src/components/resource/panels/UnifiedAnnotationsPanel.tsx`](https://github.com/xynolog/sdk/blob/main/typescript/react-ui/src/components/resource/panels/UnifiedAnnotationsPanel.tsx) — its tab, and a panel for it
+- [`@xynolog/react-ui/src/styles/motivations/`](https://github.com/xynolog/sdk/tree/main/typescript/react-ui/src/styles/motivations) — the stylesheet for its `annotation-<type>` class
 
 ### Files Using the Registry
 
@@ -247,7 +247,7 @@ An offset counts the content's Unicode code points; `offsets` is `textOffsets(co
 
 ## Visual Design System
 
-Each motivation's styles live in `packages/typescript/react-ui/src/styles/motivations/` (`motivation-highlight.css`, `motivation-comment.css`, …) as its `annotation-<type>` class, with dark-theme variants.
+Each motivation's styles live in [`@xynolog/react-ui/src/styles/motivations/`](https://github.com/xynolog/sdk/tree/main/typescript/react-ui/src/styles/motivations) (`motivation-highlight.css`, `motivation-comment.css`, …) as its `annotation-<type>` class, with dark-theme variants.
 
 ### Interaction States
 - **Hover**: Each annotation class has its own hover style
@@ -300,9 +300,9 @@ const entityTypes$ = session.client.browse.entityTypes();
 
 ## Testing
 
-- `packages/typescript/react-ui/src/lib/__tests__/annotation-registry.test.ts` - The registry
-- `packages/typescript/react-ui/src/lib/__tests__/text-segmentation.test.ts` - Text segmentation
-- `packages/typescript/react-ui/src/lib/__tests__/annotation-overlay.test.ts` - The BrowseView overlay
+- [`@xynolog/react-ui/src/lib/__tests__/annotation-registry.test.ts`](https://github.com/xynolog/sdk/blob/main/typescript/react-ui/src/lib/__tests__/annotation-registry.test.ts) - The registry
+- [`@xynolog/react-ui/src/lib/__tests__/text-segmentation.test.ts`](https://github.com/xynolog/sdk/blob/main/typescript/react-ui/src/lib/__tests__/text-segmentation.test.ts) - Text segmentation
+- [`@xynolog/react-ui/src/lib/__tests__/annotation-overlay.test.ts`](https://github.com/xynolog/sdk/blob/main/typescript/react-ui/src/lib/__tests__/annotation-overlay.test.ts) - The BrowseView overlay
 
 ## W3C Annotation Data Model
 
