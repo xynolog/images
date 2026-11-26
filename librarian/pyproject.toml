@@ -108,8 +108,7 @@ line-length = 140
 select = ["ANN", "ASYNC", "B", "C4", "E", "F", "I", "PGH", "PT", "RUF", "SIM", "TID", "UP", "W"]
 
 [tool.mypy]
-# requires-python's floor, which mypy does not read. lint:python-version holds
-# this, pyright's, the classifiers and CI's matrix to it.
+# requires-python's floor, which mypy does not read.
 python_version = "3.12"
 files = ["src", "tests"]
 strict = true

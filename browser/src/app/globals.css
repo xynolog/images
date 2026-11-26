@@ -10,15 +10,12 @@
 /* Scan the Browser's source for Tailwind classes */
 @source "../../src";
 
-/* Scan @xynolog/react-ui for Tailwind classes */
-@source "../../../../packages/typescript/react-ui/src";
-
 /* Light mode (default) */
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
-  --cm-cursor-color: #000000;
+  --cm-cursor-color: #000;
 }
 
 /* Dark mode - applied when html has data-theme="dark" attribute */
@@ -26,7 +23,7 @@
   --foreground-rgb: 255, 255, 255;
   --background-start-rgb: 0, 0, 0;
   --background-end-rgb: 0, 0, 0;
-  --cm-cursor-color: #ffffff;
+  --cm-cursor-color: #fff;
 }
 
 body {
@@ -52,6 +49,7 @@ body {
   0%, 100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.6;
   }
@@ -71,6 +69,7 @@ body {
   display: inline-block;
   width: 100%;
 }
+
 .md-header-2 { 
   font-size: 1.5em; 
   font-weight: bold; 
@@ -78,6 +77,7 @@ body {
   display: inline-block;
   width: 100%;
 }
+
 .md-header-3 { 
   font-size: 1.25em; 
   font-weight: bold; 
@@ -85,12 +85,14 @@ body {
   display: inline-block;
   width: 100%;
 }
+
 .md-header-4 { 
   font-size: 1.1em; 
   font-weight: bold;
   display: inline-block;
   width: 100%;
 }
+
 .md-header-5, 
 .md-header-6 { 
   font-size: 1em; 
@@ -102,8 +104,9 @@ body {
 /* Text formatting */
 .md-bold { font-weight: bold; }
 .md-italic { font-style: italic; }
+
 .md-code { 
-  background: rgba(0, 0, 0, 0.05);
+  background: rgb(0 0 0 / 5%);
   padding: 2px 4px;
   border-radius: 3px;
   font-family: monospace;
@@ -119,9 +122,10 @@ body {
 
 /* Lists */
 .md-list-bullet {
-  color: #666666;
+  color: #666;
   font-weight: bold;
 }
+
 .md-list-item {
   padding-left: 1em;
 }
@@ -134,46 +138,6 @@ body {
 .md-header-widget.md-h1 { font-size: 2em; font-weight: bold; }
 .md-header-widget.md-h2 { font-size: 1.5em; font-weight: bold; }
 
-/* Animations for SelectionPopup entity types */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fadeInScale {
-  animation: fadeInScale 0.3s ease-out forwards;
-}
-
-.animate-slideDown {
-  animation: slideDown 0.3s ease-out;
-}
-
 /* Quick action widgets - show on annotation hover */
 [data-annotation-id]:hover .quick-actions-widget {
   opacity: 1 !important;
@@ -183,10 +147,11 @@ body {
 /* Pulsing outline animation for focused comments */
 @keyframes pulse-outline {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(107, 114, 128, 0.4);
+    box-shadow: 0 0 0 0 rgb(107 114 128 / 40%);
   }
+
   50% {
-    box-shadow: 0 0 0 8px rgba(107, 114, 128, 0);
+    box-shadow: 0 0 0 8px rgb(107 114 128 / 0%);
   }
 }
 
@@ -224,37 +189,11 @@ body {
   }
 
   /* Override specific keyframes */
-  @keyframes fadeInScale {
-    from, to {
-      transform: none;
-      opacity: 1;
-    }
-  }
-
-  @keyframes slideDown {
-    from, to {
-      transform: none;
-      opacity: 1;
-    }
-  }
-
   @keyframes pulse-outline {
     from, to {
-      outline-color: currentColor;
+      outline-color: currentcolor;
       outline-offset: 0;
     }
-  }
-
-  /* Ensure elements are visible without animation */
-  .fade-in-scale {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-  }
-
-  .slide-down {
-    animation: none !important;
-    transform: none !important;
   }
 
   .annotation-comment-focused {

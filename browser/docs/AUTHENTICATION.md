@@ -202,7 +202,7 @@ tree and cannot call hooks. The transport stamps each failure with a
 stream and routes failures to that session's `SessionSignals`:
 
 ```typescript
-// XynologBrowser, on session activation (packages/typescript/sdk/src/session/xynolog-browser.ts)
+// XynologBrowser, on session activation (@xynolog/sdk/src/session/xynolog-browser.ts)
 declare const signals: SessionSignals; // the session's signals
 
 session.errors$.subscribe((err) => {

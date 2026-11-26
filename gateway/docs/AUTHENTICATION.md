@@ -33,7 +33,7 @@ first; the `bearerAuth` and `mediaToken` schemes in
 | The issuer's keys: discovery, the key set, when it is fetched | [issuer.rs](../../packages/rust/http-service/src/issuer.rs), in the crate the Rust services that serve HTTP share |
 | The key ring and media tokens | [src/tokens.rs](../src/tokens.rs) |
 | How a person and an agent are named | the Rust SDK's [identity.rs](https://github.com/xynolog/sdk/blob/main/rust/sdk/src/identity.rs), held to [protocol/specs/src/principals/cases.json](https://github.com/xynolog/protocol/blob/main/specs/src/principals/cases.json) |
-| The role names, and the claim that marks an agent's account | the Rust SDK's [roles.rs](https://github.com/xynolog/sdk/blob/main/rust/sdk/src/roles.rs), held to the launcher's by `npm run lint:service-role` |
+| The role names, and the claim that marks an agent's account | the Rust SDK's [roles.rs](https://github.com/xynolog/sdk/blob/main/rust/sdk/src/roles.rs) |
 
 A protected handler takes `Authenticated` (or `MediaOrBearer`), which runs
 before its body is read, so an unauthenticated request never reaches a parser.

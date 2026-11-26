@@ -33,15 +33,16 @@ This provides all component styles with the `xynolog-` prefix:
 - And more...
 
 #### Tailwind Configuration
-The Browser app uses Tailwind for its own components and layout. `globals.css` loads `tailwind.config.js` with `@config` and names the sources Tailwind scans for class names — the Browser's own `src`, and `packages/typescript/react-ui/src`:
+The Browser app uses Tailwind for its own components and layout. `globals.css` loads `tailwind.config.js` with `@config` and names the source Tailwind scans for class names, the Browser's own `src`. `@xynolog/react-ui` uses only its own `xynolog-*` classes, from `@xynolog/react-ui/styles`, so Tailwind does not scan it:
 
 ```css
 /* browser/src/app/globals.css */
 @config "../../tailwind.config.js";
 @plugin "@tailwindcss/typography";
 @source "../../src";
-@source "../../../../packages/typescript/react-ui/src";
 ```
+
+`npm run lint:css`, which `make test-browser` runs, checks the Browser's CSS with stylelint against `stylelint-config-standard`. `browser/.stylelintrc.json` admits Tailwind's at-rules (`@config`, `@plugin`, `@source`, `@theme`, `@utility`, `@variant`, `@custom-variant`, `@apply`) and its `theme()` function, and asks for `@import` as a string: Tailwind's PostCSS plugin expands `@import "tailwindcss"` only in that form.
 
 ### Using @xynolog/react-ui Components
 
@@ -316,7 +317,7 @@ Every `xynolog-button` dims to 50% opacity with a `not-allowed` cursor when it i
 
 ## Annotation Styles
 
-Each motivation's class name lives in the `ANNOTATORS` registry (`packages/typescript/react-ui/src/lib/annotation-registry.ts`); its colours live in `packages/typescript/react-ui/src/styles/motivations/`.
+Each motivation's class name lives in the `ANNOTATORS` registry ([`@xynolog/react-ui/src/lib/annotation-registry.ts`](https://github.com/xynolog/sdk/blob/main/typescript/react-ui/src/lib/annotation-registry.ts)); its colours live in [`@xynolog/react-ui/src/styles/motivations/`](https://github.com/xynolog/sdk/tree/main/typescript/react-ui/src/styles/motivations).
 
 ### Highlights
 - **Background:** Yellow (`--xynolog-motivation-highlight-bg`: yellow-200; yellow-900 at 50% in dark mode)

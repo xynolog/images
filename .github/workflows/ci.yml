@@ -74,6 +74,12 @@ jobs:
       - name: Only the broker's implementations name NATS
         run: node scripts/check-broker-boundary.mjs
 
+      - name: Provenance is built in one place, and a principal named in one
+        run: node archivist/scripts/check-attribution-one-copy.mjs
+
+      - name: Only the staging driver runs git
+        run: node archivist/scripts/check-staging-boundary.mjs
+
       - name: Every service image is supervision-capable
         run: bash scripts/audit-supervision.sh
 
@@ -316,11 +322,11 @@ jobs:
           path: ~/.cache/xynolog-images/python
           key: ${{ steps.uv.outputs.cache-primary-key }}
 
-  # The Browser's tests and the type checks of its sources and tests (`make
-  # test-browser`, scripts/test-browser.sh), against the SDK's npm packages
-  # from the bundle.
+  # The Browser's tests, the type checks of its sources and tests, and
+  # stylelint over its CSS (`make test-browser`, scripts/test-browser.sh),
+  # against the SDK's npm packages from the bundle.
   browser:
-    name: The Browser passes its tests, and its sources and tests type-check
+    name: The Browser passes its tests, its sources and tests type-check, and its CSS lints
     needs: sdk
     runs-on: ubuntu-latest
     steps:

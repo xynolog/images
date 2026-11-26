@@ -48,7 +48,7 @@ class Landing(BaseModel, frozen=True, extra="forbid", strict=True):
 
 class Table(BaseModel, frozen=True, extra="forbid", strict=True):
     comment: Annotated[str, Field(alias="$comment")]
-    """Who runs the table, which lint:spec-case-tables holds it to."""
+    """The rule the table states."""
     not_yet_reached: Annotated[dict[str, str] | None, Field(alias="notYetReached")] = None
     """Each SDK still to run the table, and what it is to build: stated only while one is."""
     # The locating of a span, which the SDK's builder does and the SDK's own tests run.

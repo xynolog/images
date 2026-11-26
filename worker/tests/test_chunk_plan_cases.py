@@ -171,7 +171,7 @@ type Case = Annotated[BudgetCase | StepCase | WalkCase | DescentCase, Field(disc
 
 class Table(Stated, frozen=True):
     comment: Annotated[str, Field(alias="$comment")]
-    """Who runs the table, which lint:spec-case-tables holds it to."""
+    """The rule the table states."""
     sizing: StatedSizing
     cases: list[Case]
 

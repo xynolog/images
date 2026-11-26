@@ -25,7 +25,7 @@ composes the library.
               │ uses
               ▼
 ┌─────────────────────────────────────┐
-│    packages/typescript/react-ui                │
+│    @xynolog/react-ui                │
 │  (Framework-agnostic library)       │
 │                                     │
 │  • UI components                    │
@@ -234,17 +234,17 @@ Decide where the component lives:
 
 For library components:
 
-1. Create in `packages/typescript/react-ui/src/components/`
-2. Export from `packages/typescript/react-ui/src/index.ts`
-3. Add tests in `packages/typescript/react-ui/src/components/__tests__/`
-4. Add styles in `packages/typescript/react-ui/src/styles/`
+1. Create in [`@xynolog/react-ui/src/components/`](https://github.com/xynolog/sdk/tree/main/typescript/react-ui/src/components)
+2. Export from [`@xynolog/react-ui/src/index.ts`](https://github.com/xynolog/sdk/blob/main/typescript/react-ui/src/index.ts)
+3. Add tests in [`@xynolog/react-ui/src/components/__tests__/`](https://github.com/xynolog/sdk/tree/main/typescript/react-ui/src/components/__tests__)
+4. Add styles in [`@xynolog/react-ui/src/styles/`](https://github.com/xynolog/sdk/tree/main/typescript/react-ui/src/styles)
 
 For Browser components: create in `browser/src/`, compose
 library components as needed, use framework-specific APIs directly.
 
 ### Testing strategy
 
-- Unit tests for library components + hooks live in `packages/typescript/react-ui`.
+- Unit tests for library components + hooks live in [`@xynolog/react-ui`](https://github.com/xynolog/sdk/tree/main/typescript/react-ui).
 - Integration tests (provider stack, page-level behavior) live in `browser`.
 - E2E tests live at the repo root.
 
@@ -289,12 +289,11 @@ dependency.
 provider nesting in the layout. Auth-dependent providers must be
 inside `AuthShell`.
 
-**Type mismatches after schema changes**: rebuild the core + http-transport
-packages so the generated OpenAPI types propagate:
+**Type mismatches after schema changes**: the types are the SDK's. Run
+`make generate` in the sdk checkout, then build against it:
 
 ```bash
-npm run generate:openapi --workspace=@xynolog/core
-npm run build:packages -- @xynolog/http-transport
+make test-browser SDK_REPO=../sdk
 ```
 
 ## Best Practices

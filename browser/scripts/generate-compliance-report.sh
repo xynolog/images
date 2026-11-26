@@ -2,19 +2,23 @@
 set -e
 
 # Thin wrapper for Browser compliance reporting
-# Calls shared compliance scripts with workspace-specific paths
+# Calls the SDK checkout's compliance scripts (SDK_REPO) with the Browser's paths
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SRC_DIR="$(cd "$SCRIPT_DIR/../src" && pwd)"
 SYMBOLS_FILE="$SCRIPT_DIR/symbols.json"
 REPORT_DIR="$REPO_ROOT/.compliance"
 mkdir -p "$REPORT_DIR"
 REPORT_FILE="$REPORT_DIR/BROWSER-COMPLIANCE.md"
 
-# Shared compliance scripts
-DISCOVER="$REPO_ROOT/packages/typescript/scripts/compliance/discover-symbols.ts"
-AUDIT="$REPO_ROOT/packages/typescript/scripts/compliance/batch-audit.ts"
+# The SDK's compliance scripts
+[[ -d "${SDK_REPO:?Set SDK_REPO to the SDK checkout whose compliance scripts audit the Browser.}/typescript/scripts/compliance" ]] || {
+  echo "No compliance scripts at $SDK_REPO/typescript/scripts/compliance." >&2
+  exit 2
+}
+DISCOVER="$SDK_REPO/typescript/scripts/compliance/discover-symbols.ts"
+AUDIT="$SDK_REPO/typescript/scripts/compliance/batch-audit.ts"
 
 echo "🔍 Discovering symbols in $SRC_DIR..."
 npx tsx "$DISCOVER" "$SRC_DIR" "$SYMBOLS_FILE"

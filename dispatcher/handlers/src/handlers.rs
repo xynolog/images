@@ -28,8 +28,7 @@ use xynolog_observability::logging;
 
 /// The channels the dispatcher subscribes to and answers. Each is named, here
 /// and in `handle`, by its type, which exists only for a channel the bus
-/// registry declares. `lint:spec-channel-rosters` holds the two to each other
-/// and to JOBS.md § Channels.
+/// registry declares.
 pub const COMMANDS: [&str; 9] = [
     JobCreate::NAME,
     JobClaim::NAME,

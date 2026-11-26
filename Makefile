@@ -66,7 +66,7 @@ test-rust:
 test-python:
 	@./scripts/test-python.sh
 
-## test-browser: The Browser's tests and the type checks of its sources and tests, in its build container
+## test-browser: The Browser's tests, the type checks of its sources and tests, and stylelint over its CSS, in its build container
 test-browser:
 	@./scripts/test-browser.sh
 
