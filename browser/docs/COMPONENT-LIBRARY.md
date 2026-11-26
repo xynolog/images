@@ -289,12 +289,11 @@ dependency.
 provider nesting in the layout. Auth-dependent providers must be
 inside `AuthShell`.
 
-**Type mismatches after schema changes**: rebuild the core + http-transport
-packages so the generated OpenAPI types propagate:
+**Type mismatches after schema changes**: the types are the SDK's. Run
+`make generate` in the sdk checkout, then build against it:
 
 ```bash
-npm run generate:openapi --workspace=@xynolog/core
-npm run build:packages -- @xynolog/http-transport
+make test-browser SDK_REPO=../sdk
 ```
 
 ## Best Practices

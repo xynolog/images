@@ -117,7 +117,7 @@ verbatim. Under a broker outage an emit is refused with 503, never accepted and
 lost; the client reconnects on its own.
 
 **Where the interface stands.** It is the boundary to the broker, and it is
-held: `npm run lint:broker-boundary` fails when the `async_nats` crate is named
+held: `scripts/check-broker-boundary.mjs`, which CI runs, fails when the `async_nats` crate is named
 outside `nats.rs`, the dispatcher's JetStream queue (whose `JobQueue` interface
 is the same boundary on its side) and `xynolog-core`'s broker helpers; when the
 NATS plane is named outside `app.rs` (where the plane is chosen); or when any
@@ -227,7 +227,7 @@ client when it stops ends that response unfinished. The waits nest:
 `readSeconds` is longer than the Archivist holds a read of anchored text for
 the Smelter, and `connectSeconds` and `readSeconds` together are shorter than
 a client's `httpRequestTimeoutMs`, so the gateway has answered a read the
-Archivist did not before its client stops waiting. `lint:spec-protocol` holds
+Archivist did not before its client stops waiting. Protocol's reader holds
 the order.
 
 Reads and uploads go on clients of their own. A read (`GET`) that gets no

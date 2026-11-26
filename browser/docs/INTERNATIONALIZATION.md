@@ -111,8 +111,6 @@ The languages Xynolog supports are the rows of `protocol/specs/src/locales/regis
    # Translate all values in {locale}.json
    ```
 
-   `npm run lint:translations` fails until both sets hold a file for every language the registry names and no other, with every key in every file.
-
 4. Run the merge:
    ```bash
    node browser/scripts/merge-translations.js

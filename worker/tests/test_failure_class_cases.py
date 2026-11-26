@@ -37,7 +37,7 @@ class Case(BaseModel, frozen=True, extra="forbid", strict=True):
 
 class Table(BaseModel, frozen=True, extra="forbid", strict=True):
     comment: Annotated[str, Field(alias="$comment")]
-    """Who runs the table, which lint:spec-case-tables holds it to."""
+    """The rule the table states."""
     cases: list[Case]
 
 
