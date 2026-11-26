@@ -100,7 +100,7 @@ raised.
 ## Testing it
 
 Raise the signal on a test browser and render the modal against it. This is the pattern of
-`packages/typescript/react-ui/src/components/modals/__tests__/PermissionDeniedModal.test.tsx`, which also
+[`@xynolog/react-ui/src/components/modals/__tests__/PermissionDeniedModal.test.tsx`](https://github.com/xynolog/sdk/blob/main/typescript/react-ui/src/components/modals/__tests__/PermissionDeniedModal.test.tsx), which also
 replaces `@headlessui/react`'s `Dialog` and `Transition` with plain elements:
 
 ```tsx

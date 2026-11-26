@@ -43,7 +43,7 @@ Testing in the Xynolog Browser is split between two packages following the compo
               │ uses
               ▼
 ┌─────────────────────────────────────┐
-│    packages/typescript/react-ui                │
+│    @xynolog/react-ui                │
 │         Test Coverage:              │
 │                                     │
 │  • Core UI components               │
@@ -443,7 +443,7 @@ The resource page is one such pair:
 ### Testing with Factored Components
 
 **Test in @xynolog/react-ui** (business logic), modeled on
-`packages/typescript/react-ui/src/components/resource/__tests__/ResourceViewer.embeddable.test.tsx`:
+[`@xynolog/react-ui/src/components/resource/__tests__/ResourceViewer.embeddable.test.tsx`](https://github.com/xynolog/sdk/blob/main/typescript/react-ui/src/components/resource/__tests__/ResourceViewer.embeddable.test.tsx):
 
 ```tsx
 import { screen } from '@testing-library/react';
@@ -568,13 +568,13 @@ it('renders page', () => {
 **Testing @xynolog/react-ui components:**
 ```bash
 # Run react-ui tests
-cd packages/typescript/react-ui
+cd typescript/react-ui   # in the sdk repository
 npm test
 
 # Example test locations
-packages/typescript/react-ui/src/components/Button/__tests__/Button.test.tsx
-packages/typescript/react-ui/src/hooks/__tests__/useResourceContent.test.tsx
-packages/typescript/react-ui/src/features/auth/__tests__/AuthErrorDisplay.test.tsx
+typescript/react-ui/src/components/Button/__tests__/Button.test.tsx
+typescript/react-ui/src/hooks/__tests__/useResourceContent.test.tsx
+typescript/react-ui/src/features/auth/__tests__/AuthErrorDisplay.test.tsx
 ```
 
 **Testing Browser integration:**

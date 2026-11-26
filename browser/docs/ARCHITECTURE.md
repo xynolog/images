@@ -298,7 +298,7 @@ The table of what each event does to which cache is `protocol/specs/src/client/r
 **Auth failures (401 / 403):** The transport stamps every failure with a `TransportErrorCode` — `unauthorized` for 401, `forbidden` for 403 — and republishes them on `session.errors$`. `XynologBrowser` subscribes to the active session's error stream and routes them to that session's `SessionSignals`:
 
 ```typescript
-// XynologBrowser, when a session activates (packages/typescript/sdk/src/session/xynolog-browser.ts)
+// XynologBrowser, when a session activates (@xynolog/sdk/src/session/xynolog-browser.ts)
 const signals = createSessionSignals(); // handed to the session factory, then published as activeSignals$
 session.errors$.subscribe((err) => {
   if (err.code === 'unauthorized') void session.refresh(session.token$.getValue());
@@ -464,7 +464,7 @@ browser/src/
 │   └── browser-stubs/     # Browser API stubs
 └── types/                 # TypeScript type definitions
 
-packages/typescript/react-ui/src/      # Reusable React components library
+@xynolog/react-ui/src/                 # Reusable React components library
 ├── features/              # Feature-based components
 │   ├── auth/              # Authentication error surface
 │   │   ├── components/
@@ -503,9 +503,9 @@ packages/typescript/react-ui/src/      # Reusable React components library
 
 **Key Separation:**
 - `browser/src` - Vite SPA pages and app-specific implementations
-- `packages/typescript/react-ui/src` - Framework-agnostic components and interfaces
+- [`@xynolog/react-ui/src`](https://github.com/xynolog/sdk/tree/main/typescript/react-ui/src) - Framework-agnostic components and interfaces
 
-**Note**: `AuthErrorDisplay` is framework-agnostic and lives in `packages/typescript/react-ui/src/features/auth/`. Signing in is not a component: the Browser sends the user to the knowledge base's issuer and completes the exchange on its callback route. The Browser provides React Router-specific wrappers that handle routing, translations, and auth state.
+**Note**: `AuthErrorDisplay` is framework-agnostic and lives in [`@xynolog/react-ui/src/features/auth/`](https://github.com/xynolog/sdk/tree/main/typescript/react-ui/src/features/auth). Signing in is not a component: the Browser sends the user to the knowledge base's issuer and completes the exchange on its callback route. The Browser provides React Router-specific wrappers that handle routing, translations, and auth state.
 
 See [`@xynolog/react-ui/docs/`](https://github.com/xynolog/sdk/tree/main/typescript/react-ui/docs) for documentation on the reusable component library.
 

@@ -10,9 +10,6 @@
 /* Scan the Browser's source for Tailwind classes */
 @source "../../src";
 
-/* Scan @xynolog/react-ui for Tailwind classes */
-@source "../../../../packages/typescript/react-ui/src";
-
 /* Light mode (default) */
 :root {
   --foreground-rgb: 0, 0, 0;
