@@ -13,7 +13,7 @@ The Browser uses **i18next** + **react-i18next** for internationalization.
 ## Architecture
 
 ```text
-packages/typescript/react-ui/translations/{locale}.json   ← component-level strings
+@xynolog/react-ui translations/{locale}.json   ← component-level strings
        +
 browser/messages-source/{locale}.json   ← app-level strings
        │
@@ -87,7 +87,7 @@ Translation file (`messages-source/en.json`):
 
 **Source files (edit these):**
 - `browser/messages-source/{locale}.json` — app-specific keys (Navigation, KnowledgeBasePanel, UserPanel, etc.)
-- `packages/typescript/react-ui/translations/{locale}.json` — react-ui component keys (BrowseView, ResourceViewer, etc.)
+- `typescript/react-ui/translations/{locale}.json` in the sdk repository — react-ui component keys (BrowseView, ResourceViewer, etc.); the Browser reads them from the installed `@xynolog/react-ui`
 
 **Generated files (do not edit):**
 - `browser/messages/{locale}.json`
@@ -105,9 +105,9 @@ The languages Xynolog supports are the rows of `protocol/specs/src/locales/regis
    # Translate all values in {locale}.json
    ```
 
-3. Add the react-ui translations:
+3. Add the react-ui translations, in the sdk repository:
    ```bash
-   cp packages/typescript/react-ui/translations/en.json packages/typescript/react-ui/translations/{locale}.json
+   cp typescript/react-ui/translations/en.json typescript/react-ui/translations/{locale}.json
    # Translate all values in {locale}.json
    ```
 

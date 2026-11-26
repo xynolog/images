@@ -74,6 +74,12 @@ jobs:
       - name: Only the broker's implementations name NATS
         run: node scripts/check-broker-boundary.mjs
 
+      - name: Provenance is built in one place, and a principal named in one
+        run: node archivist/scripts/check-attribution-one-copy.mjs
+
+      - name: Only the staging driver runs git
+        run: node archivist/scripts/check-staging-boundary.mjs
+
       - name: Every service image is supervision-capable
         run: bash scripts/audit-supervision.sh
 

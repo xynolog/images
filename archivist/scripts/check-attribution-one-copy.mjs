@@ -43,18 +43,18 @@
  * resolver is Python and the rest of the tree's readers are TypeScript and
  * Python, so this rule reads the source of both.
  *
- * The files read are the TypeScript, Python and Rust under each package's,
- * app's and image's `src`, a crate inside an image included, that git says the
- * repository holds (`repository-files.mjs`), tests left out: a fixture may
+ * The files read are the TypeScript, Python and Rust under every `src` the
+ * repository holds, one to three directories deep (`repository-files.mjs`),
+ * tests left out: a fixture may
  * build provenance by hand, and is no second definition of it. The second rule
  * reads the TypeScript and Python alone.
  */
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
-import { repositoryFiles } from '../../../.github/scripts/checks/repository-files.mjs';
+import { repositoryFiles } from '../../.github/scripts/checks/repository-files.mjs';
 
-const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const ALLOWED = 'archivist/record/src/agents.rs';
 /** Where a principal acquires a name in TypeScript or Python — the Librarian's read-side resolver, and only it. */
 const NAMES_A_PRINCIPAL = 'librarian/src/xynolog_librarian/naming.py';
@@ -70,8 +70,8 @@ const CONSTRUCTION = new RegExp([
   String.raw`\blet\s+(?:mut\s+)?was_attributed_to\b`,  // Rust: a local being built
 ].join('|'));
 
-/** A source directory at the head of a path: `packages/<language>/<name>/src`, `apps/<name>/src`, `<name>/src`, or a crate's inside an image, `<name>/<crate>/src`. */
-const SOURCE_ROOT = /^(?:packages\/[^/]+\/[^/]+|apps\/[^/]+|images\/[^/]+(?:\/[^/]+)?)\/src(?=\/)/;
+/** A source directory at the head of a path: an image's `<name>/src`, a crate's inside it, `<name>/<crate>/src`, or a shared package's, `packages/rust/<crate>/src` and `shared/python/<name>/src`. */
+const SOURCE_ROOT = /^(?:[^/]+\/){1,3}src(?=\/)/;
 const TEST = /(^|\/)__tests__\/|\.test\.ts$/;
 
 const sources = repositoryFiles(ROOT).filter((file) => SOURCE_ROOT.test(file));
