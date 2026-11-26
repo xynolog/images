@@ -11,9 +11,7 @@
  *   - in Rust, `git` is spawned only in the git driver, and no crate names a
  *     git library;
  *   - in production TypeScript and JavaScript, nothing spawns git or writes
- *     its arguments (`mv`, `rm`, `--cached`, `rev-parse`);
- *   - no schema in `protocol/specs/` gives a caller a `noGit` switch. Whether a project
- *     stages is the project's `git.sync`, never one command's choice.
+ *     its arguments (`mv`, `rm`, `--cached`, `rev-parse`).
  *
  * A test may run git to set a repository up or to read its index. Each allowed
  * file must still use what it is allowed, so an entry cannot outlive the
@@ -22,21 +20,19 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { repositoryFiles } from '../../../.github/scripts/checks/repository-files.mjs';
-import { withoutComments } from '../../../.github/scripts/checks/source-text.mjs';
+import { repositoryFiles } from '../../.github/scripts/checks/repository-files.mjs';
+import { withoutComments } from '../../.github/scripts/checks/source-text.mjs';
 
-const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
 const DRIVER = 'archivist/staging/src/git.rs';
 
 const productionSource = (file) =>
-  /^(?:packages\/[^/]+\/[^/]+|apps\/[^/]+|images\/[^/]+)\/src\//.test(file) &&
+  /^(?:[^/]+\/){1,3}src\//.test(file) &&
   /\.(ts|tsx|mts|cts|js|mjs|cjs)$/.test(file) &&
   !/(^|\/)__tests__\/|\.(test|spec)\.[^/]+$/.test(file);
 
-const rustSource = (file) => /^(apps|images|packages)\/(?!desktop\/)(?:[^/]+\/)+src\/.*\.rs$/.test(file);
-
-const specSchema = (file) => /^protocol\/specs\/src\/.*\.json$/.test(file);
+const rustSource = (file) => /^(?:[^/]+\/)+src\/.*\.rs$/.test(file);
 
 const RULES = [
   {
@@ -66,12 +62,6 @@ const RULES = [
     uses: /\b(?:git2|gix)::/,
     allowed: [],
   },
-  {
-    what: 'a `noGit` switch on the wire',
-    scope: specSchema,
-    uses: /"noGit"\s*:/,
-    allowed: [],
-  },
 ];
 
 const tracked = repositoryFiles(ROOT);
@@ -99,4 +89,4 @@ if (problems.length > 0) {
   console.error('  Stage, move and remove through Staging (archivist/staging/src/lib.rs).');
   process.exit(1);
 }
-console.log('✓ lint:staging-boundary — git is run, and spoken to in its own arguments, only in the git staging driver, and no schema carries a noGit switch');
+console.log('✓ lint:staging-boundary — git is run, and spoken to in its own arguments, only in the git staging driver');

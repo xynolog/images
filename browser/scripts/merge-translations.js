@@ -4,7 +4,7 @@
  * Merge react-ui translations into Browser messages
  *
  * This script reads translations from:
- * - packages/typescript/react-ui/translations/*.json (react-ui component translations)
+ * - @xynolog/react-ui's translations/*.json, as installed (react-ui component translations)
  * - browser/messages-source/*.json (Browser-specific translations)
  *
  * And merges them into:
@@ -16,7 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const REACT_UI_TRANSLATIONS_DIR = path.resolve(__dirname, '../../../packages/typescript/react-ui/translations');
+const REACT_UI_TRANSLATIONS_DIR = path.dirname(require.resolve('@xynolog/react-ui/translations/en'));
 const BROWSER_MESSAGES_SOURCE_DIR = path.resolve(__dirname, '../messages-source');
 const BROWSER_MESSAGES_OUTPUT_DIR = path.resolve(__dirname, '../messages');
 // Public copy served by Vite at /messages/{locale}.json for i18next-http-backend
@@ -46,8 +46,7 @@ function deepMerge(target, source) {
  */
 function getTranslationFiles(dir) {
   if (!fs.existsSync(dir)) {
-    console.warn(`Warning: Directory does not exist: ${dir}`);
-    return [];
+    throw new Error(`No translations directory: ${dir}`);
   }
 
   return fs.readdirSync(dir)

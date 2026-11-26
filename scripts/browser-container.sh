@@ -2,8 +2,7 @@
 # browser-container.sh <verified-sdk-bundle-directory> <commands> — run
 # <commands> in the Browser's build container, at /tmp/browser: a copy of
 # browser/ with its dependencies installed, the SDK's npm packages from the
-# bundle among them, the React UI's translations where the build reads them,
-# and the brand submodule's favicons beside it. The checkout is at /source.
+# bundle among them, and the brand submodule's favicons beside it. The checkout is at /source.
 # build-browser-package.sh builds the package there, and test-browser.sh
 # checks the Browser there.
 set -euo pipefail
@@ -23,9 +22,7 @@ RUNTIME="$(detect_container_runtime)"
   --volume "$SDK_BUNDLE_DIR:/sdk-bundle:ro" \
   --workdir /tmp \
   node:26-bookworm bash -euc '
-    mkdir -p /tmp/browser /packages/typescript/react-ui
-    tar -xzf /sdk-bundle/typescript/xynolog-react-ui-*.tgz \
-      -C /packages/typescript/react-ui --strip-components=1 package/translations
+    mkdir -p /tmp/browser
     cp -a /source/browser/. /tmp/browser/
     # Beside the app, as in the repository: scripts/copy-favicons.js and the
     # index.html test read brand/favicons there.
