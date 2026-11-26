@@ -242,7 +242,7 @@ def test_the_checkers_and_their_strictness_are_the_sdks() -> None:
     assert {key: our_run[key] for key in our_run if key != "source"} == {key: their_run[key] for key in their_run if key != "source"}
     # The SDK's formatter is told which of its modules are generated. This package has none.
     assert settings(ours, "ruff", but=()) == settings(theirs, "ruff", but=("extend-exclude",))
-    # Which Pythons the two run on is lint:python-version's to hold: it is the one gate that reads that line.
+    # Nothing holds which Pythons the two run on to each other.
     assert ours["build-system"] == theirs["build-system"]
 
 

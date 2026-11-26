@@ -390,7 +390,7 @@ def test_the_checkers_and_their_strictness_are_the_sdks() -> None:
     our_lint = table(settings(MANIFEST, "ruff", but=())["lint"], "ruff's lint")
     their_lint = table(settings(theirs, "ruff", but=())["lint"], "ruff's lint")
     assert our_lint == {key: value for key, value in their_lint.items() if key != "per-file-ignores"}
-    # Which Pythons the two run on is lint:python-version's to hold: it is the one gate that reads that line.
+    # Nothing holds which Pythons the two run on to each other.
     assert MANIFEST["build-system"] == theirs["build-system"]
 
 
