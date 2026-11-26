@@ -42,6 +42,8 @@ The Browser app uses Tailwind for its own components and layout. `globals.css` l
 @source "../../src";
 ```
 
+`npm run lint:css`, which `make test-browser` runs, checks the Browser's CSS with stylelint against `stylelint-config-standard`. `browser/.stylelintrc.json` admits Tailwind's at-rules (`@config`, `@plugin`, `@source`, `@theme`, `@utility`, `@variant`, `@custom-variant`, `@apply`) and its `theme()` function, and asks for `@import` as a string: Tailwind's PostCSS plugin expands `@import "tailwindcss"` only in that form.
+
 ### Using @xynolog/react-ui Components
 
 When using components from @xynolog/react-ui, they already have all necessary styling:
